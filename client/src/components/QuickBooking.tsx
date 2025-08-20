@@ -26,6 +26,9 @@ export const SelectedMemberProvider = ({ children }: { children: React.ReactNode
   const { data: members = [] } = useQuery<Member[]>({
     queryKey: ["/api/members"],
   });
+  
+  console.log('SelectedMemberProvider - selectedMemberId:', selectedMemberId);
+  console.log('SelectedMemberProvider - members length:', members.length);
 
   // Load last selected member from cookie on component mount
   useEffect(() => {
@@ -74,6 +77,10 @@ function QuickBookingContent() {
     queryKey: ["/api/members"],
   });
 
+  console.log('QuickBookingContent - selectedMemberId:', selectedMemberId);
+  console.log('QuickBookingContent - members length:', members.length);
+  console.log('QuickBookingContent - setSelectedMemberId function:', typeof setSelectedMemberId);
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8" data-testid="quick-booking-card">
       <h2 className="text-lg font-medium text-gray-900 mb-2">Quick Booking</h2>
@@ -104,11 +111,7 @@ function QuickBookingContent() {
   );
 }
 
-// Export the wrapper component that provides context
+// Export the main component directly since context is provided in App.tsx
 export default function QuickBooking() {
-  return (
-    <SelectedMemberProvider>
-      <QuickBookingContent />
-    </SelectedMemberProvider>
-  );
+  return <QuickBookingContent />;
 }
