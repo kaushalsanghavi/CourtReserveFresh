@@ -66,7 +66,8 @@ export const SelectedMemberProvider = ({ children }: { children: React.ReactNode
   );
 };
 
-function QuickBooking() {
+// Internal component that uses the context
+function QuickBookingContent() {
   const { selectedMemberId, setSelectedMemberId } = useSelectedMember();
   
   const { data: members = [] } = useQuery<Member[]>({
@@ -103,4 +104,7 @@ function QuickBooking() {
   );
 }
 
-export default QuickBooking;
+// Export the wrapper component that doesn't need context
+export default function QuickBooking() {
+  return <QuickBookingContent />;
+}
