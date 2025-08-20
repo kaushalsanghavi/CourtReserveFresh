@@ -16,6 +16,8 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Enhanced device tracking** to capture exact device model, OS version, and browser information
 - ✅ **Improved UI** to show selected member and highlight their bookings in green
 - ✅ **Data persistence verified** - bookings survive deployment restarts using ReplDB
+- ⚠️ **Storage Migration History**: App previously used in-memory → file-based → ReplDB storage
+- ✅ **Production Ready**: ReplDB ensures data persists across restarts and deployments
 
 ## System Architecture
 
