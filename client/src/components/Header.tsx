@@ -5,9 +5,7 @@ export default function Header() {
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-semibold text-gray-900" data-testid="app-title">
-            Our own Slot bookings for Badminton
-          </h1>
+          <h1 className="text-2xl font-semibold text-gray-900" data-testid="app-title">Our own slot bookings for Badminton</h1>
           <span className="text-sm text-gray-500">Group Scheduler @ Sunny</span>
         </div>
         <div className="flex items-center space-x-6 text-sm text-gray-600">
