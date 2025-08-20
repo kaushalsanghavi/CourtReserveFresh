@@ -1,9 +1,19 @@
 
 import { type Member, type InsertMember, type Booking, type InsertBooking, type Activity, type InsertActivity } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { Client } from "replit";
+import { promises as fs } from "fs";
+import path from "path";
 
-const client = new Client();
+const DATA_DIR = path.join(process.cwd(), "data");
+
+// Ensure data directory exists
+async function ensureDataDir() {
+  try {
+    await fs.access(DATA_DIR);
+  } catch {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+  }
+}
 
 export interface IStorage {
   // Members
@@ -22,12 +32,13 @@ export interface IStorage {
   createActivity(activity: InsertActivity): Promise<Activity>;
 }
 
-export class ReplDBStorage implements IStorage {
+export class FileStorage implements IStorage {
   constructor() {
     this.initializeData();
   }
 
   private async initializeData() {
+    await ensureDataDir();
     // Initialize with default members if they don't exist
     const existingMembers = await this.getMembers();
     if (existingMembers.length === 0) {
@@ -43,13 +54,27 @@ export class ReplDBStorage implements IStorage {
         { id: randomUUID(), name: "Anjali", initials: "AN", avatarColor: "teal", createdAt: new Date() },
         { id: randomUUID(), name: "Kumar", initials: "KU", avatarColor: "cyan", createdAt: new Date() },
       ];
-      await client.set("members", defaultMembers);
+      await this.saveData("members", defaultMembers);
     }
   }
 
+  private async loadData<T>(filename: string): Promise<T[]> {
+    try {
+      const filePath = path.join(DATA_DIR, `${filename}.json`);
+      const data = await fs.readFile(filePath, "utf-8");
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  private async saveData<T>(filename: string, data: T[]): Promise<void> {
+    const filePath = path.join(DATA_DIR, `${filename}.json`);
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+  }
+
   async getMembers(): Promise<Member[]> {
-    const members = await client.get("members");
-    return members || [];
+    return await this.loadData<Member>("members");
   }
 
   async createMember(insertMember: InsertMember): Promise<Member> {
@@ -60,13 +85,12 @@ export class ReplDBStorage implements IStorage {
       createdAt: new Date(),
     };
     members.push(member);
-    await client.set("members", members);
+    await this.saveData("members", members);
     return member;
   }
 
   async getBookings(): Promise<Booking[]> {
-    const bookings = await client.get("bookings");
-    return bookings || [];
+    return await this.loadData<Booking>("bookings");
   }
 
   async getBookingsByDate(date: string): Promise<Booking[]> {
@@ -87,7 +111,7 @@ export class ReplDBStorage implements IStorage {
       createdAt: new Date(),
     };
     bookings.push(booking);
-    await client.set("bookings", bookings);
+    await this.saveData("bookings", bookings);
     return booking;
   }
 
@@ -101,14 +125,13 @@ export class ReplDBStorage implements IStorage {
       return false; // No booking found to delete
     }
     
-    await client.set("bookings", filteredBookings);
+    await this.saveData("bookings", filteredBookings);
     return true;
   }
 
   async getActivities(): Promise<Activity[]> {
-    const activities = await client.get("activities");
-    const allActivities = activities || [];
-    return allActivities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const activities = await this.loadData<Activity>("activities");
+    return activities.sort((a: Activity, b: Activity) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async createActivity(insertActivity: InsertActivity): Promise<Activity> {
@@ -119,9 +142,9 @@ export class ReplDBStorage implements IStorage {
       createdAt: new Date(),
     };
     activities.push(activity);
-    await client.set("activities", activities);
+    await this.saveData("activities", activities);
     return activity;
   }
 }
 
-export const storage = new ReplDBStorage();
+export const storage = new FileStorage();
