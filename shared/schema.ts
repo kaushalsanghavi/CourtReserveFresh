@@ -1,83 +1,60 @@
-import { createInsertSchema } from 'drizzle-zod';
-import { z } from 'zod';
+import { sql } from "drizzle-orm";
+import { pgTable, text, varchar, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
 
-// Database-like tables for type consistency
-export const bookings = {
-  id: z.string(),
-  date: z.string(), // YYYY-MM-DD format
-  memberName: z.string(),
-  deviceInfo: z.string(), // Detailed device information
-  createdAt: z.string(), // ISO timestamp
-};
-
-export const activities = {
-  id: z.string(),
-  type: z.enum(['book', 'cancel']),
-  memberName: z.string(),
-  date: z.string(), // YYYY-MM-DD format
-  deviceInfo: z.string(), // Detailed device information
-  createdAt: z.string(), // ISO timestamp
-};
-
-// Types for the application
-export type Booking = {
-  id: string;
-  date: string;
-  memberName: string;
-  deviceInfo: string;
-  createdAt: string;
-};
-
-export type Activity = {
-  id: string;
-  type: 'book' | 'cancel';
-  memberName: string;
-  date: string;
-  deviceInfo: string;
-  createdAt: string;
-};
-
-export type MonthlyStats = {
-  member: string;
-  totalBookings: number;
-  participationRate: number;
-  status: 'Low' | 'Medium' | 'High';
-};
-
-// Insert schemas for validation
-export const insertBookingSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
-  memberName: z.string().min(1, 'Member name is required'),
-  deviceInfo: z.string().min(1, 'Device info is required'),
+export const members = pgTable("members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  initials: text("initials").notNull(),
+  avatarColor: text("avatar_color").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertActivitySchema = z.object({
-  type: z.enum(['book', 'cancel']),
-  memberName: z.string().min(1, 'Member name is required'),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
-  deviceInfo: z.string().min(1, 'Device info is required'),
+export const bookings = pgTable("bookings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  memberId: varchar("member_id").notNull(),
+  memberName: text("member_name").notNull(),
+  date: text("date").notNull(), // YYYY-MM-DD format
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const activities = pgTable("activities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  memberId: varchar("member_id").notNull(),
+  memberName: text("member_name").notNull(),
+  action: text("action").notNull(), // "booked" or "cancelled"
+  date: text("date").notNull(), // YYYY-MM-DD format
+  deviceInfo: text("device_info").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMemberSchema = createInsertSchema(members).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBookingSchema = createInsertSchema(bookings).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertActivitySchema = createInsertSchema(activities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Member = typeof members.$inferSelect;
+export type InsertMember = z.infer<typeof insertMemberSchema>;
+export type Booking = typeof bookings.$inferSelect;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
+export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 
-// Predefined members
-export const MEMBERS = [
-  'Ashish',
-  'Gagan', 
-  'He-man',
-  'Kaushal',
-  'Main hoon na',
-  'Aswini',
-  'Rahul',
-  'RK',
-  'Anjali',
-  'Kumar'
-] as const;
+export const bookSlotSchema = z.object({
+  memberId: z.string().min(1),
+  memberName: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
 
-export type MemberName = typeof MEMBERS[number];
-
-// Business constants
-export const MAX_SLOTS_PER_DAY = 6;
-export const BOOKING_WINDOW_WEEKS = 2;
-export const SLOT_TIME = '8:30 AM - 9:45 AM';
+export type BookSlotRequest = z.infer<typeof bookSlotSchema>;

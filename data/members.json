@@ -1,0 +1,72 @@
+[
+  {
+    "id": "bf15ec17-c0cd-405e-9fdb-4f6a7db389a9",
+    "name": "Ashish",
+    "initials": "A",
+    "avatarColor": "green",
+    "createdAt": "2025-08-20T07:54:53.459Z"
+  },
+  {
+    "id": "935be03f-ec1d-4c3d-9a95-a84fd95c51d0",
+    "name": "Gagan",
+    "initials": "G",
+    "avatarColor": "blue",
+    "createdAt": "2025-08-20T07:54:53.459Z"
+  },
+  {
+    "id": "cfbde893-de52-4bf0-94e5-31b8f19edbcd",
+    "name": "He-man",
+    "initials": "H",
+    "avatarColor": "purple",
+    "createdAt": "2025-08-20T07:54:53.459Z"
+  },
+  {
+    "id": "17c1db0d-a012-41b2-9e47-491a3c1462e4",
+    "name": "Kaushal",
+    "initials": "K",
+    "avatarColor": "yellow",
+    "createdAt": "2025-08-20T07:54:53.459Z"
+  },
+  {
+    "id": "8ebacd62-90bc-4bc9-aa83-9ed59eaa8a6f",
+    "name": "Main hoon na",
+    "initials": "MH",
+    "avatarColor": "pink",
+    "createdAt": "2025-08-20T07:54:53.459Z"
+  },
+  {
+    "id": "5ccf2b2b-db1f-440d-bb06-486c89ba15c8",
+    "name": "Aswini",
+    "initials": "AS",
+    "avatarColor": "indigo",
+    "createdAt": "2025-08-20T07:54:53.459Z"
+  },
+  {
+    "id": "81e568c5-283e-48ed-b239-b2c043051024",
+    "name": "Rahul",
+    "initials": "R",
+    "avatarColor": "orange",
+    "createdAt": "2025-08-20T07:54:53.459Z"
+  },
+  {
+    "id": "8da66734-d896-4049-a36a-2ed9664ee3a9",
+    "name": "RK",
+    "initials": "RK",
+    "avatarColor": "red",
+    "createdAt": "2025-08-20T07:54:53.459Z"
+  },
+  {
+    "id": "dae6fa32-e351-40c9-803a-14371430b732",
+    "name": "Anjali",
+    "initials": "AN",
+    "avatarColor": "teal",
+    "createdAt": "2025-08-20T07:54:53.459Z"
+  },
+  {
+    "id": "c3dd4b2f-4e48-43d2-a679-27913b24452a",
+    "name": "Kumar",
+    "initials": "KU",
+    "avatarColor": "cyan",
+    "createdAt": "2025-08-20T07:54:53.459Z"
+  }
+]

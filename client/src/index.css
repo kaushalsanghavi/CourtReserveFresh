@@ -1,0 +1,172 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(220 9% 36%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(220 9% 36%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(220 9% 36%);
+  --primary: hsl(162 73% 30%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(220 13% 91%);
+  --secondary-foreground: hsl(220 9% 36%);
+  --muted: hsl(220 13% 91%);
+  --muted-foreground: hsl(220 9% 46%);
+  --accent: hsl(151 81% 96%);
+  --accent-foreground: hsl(162 73% 30%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(220 13% 83%);
+  --input: hsl(220 13% 91%);
+  --ring: hsl(162 73% 30%);
+  --radius: 0.5rem;
+  
+  /* Ramp Gray colors */
+  --ramp-gray-50: hsl(220 14% 96%);
+  --ramp-gray-100: hsl(220 13% 91%);
+  --ramp-gray-200: hsl(220 13% 83%);
+  --ramp-gray-300: hsl(220 9% 72%);
+  --ramp-gray-400: hsl(220 9% 46%);
+  --ramp-gray-500: hsl(220 9% 36%);
+  --ramp-gray-600: hsl(220 13% 26%);
+  --ramp-gray-700: hsl(220 14% 20%);
+  --ramp-gray-800: hsl(220 18% 12%);
+  --ramp-gray-900: hsl(220 26% 6%);
+  
+  /* Ramp Green colors */
+  --ramp-green-50: hsl(151 81% 96%);
+  --ramp-green-100: hsl(154 100% 91%);
+  --ramp-green-200: hsl(156 100% 82%);
+  --ramp-green-300: hsl(158 100% 68%);
+  --ramp-green-400: hsl(160 84% 39%);
+  --ramp-green-500: hsl(162 73% 30%);
+  --ramp-green-600: hsl(164 86% 22%);
+  --ramp-green-700: hsl(166 91% 17%);
+  --ramp-green-800: hsl(168 84% 14%);
+  --ramp-green-900: hsl(170 97% 11%);
+  
+  --font-inter: 'Inter', sans-serif;
+}
+
+.dark {
+  --background: hsl(220 26% 6%);
+  --foreground: hsl(220 13% 91%);
+  --card: hsl(220 18% 12%);
+  --card-foreground: hsl(220 13% 91%);
+  --popover: hsl(220 26% 6%);
+  --popover-foreground: hsl(220 13% 91%);
+  --primary: hsl(162 73% 30%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(220 13% 26%);
+  --secondary-foreground: hsl(220 13% 91%);
+  --muted: hsl(220 13% 26%);
+  --muted-foreground: hsl(220 9% 72%);
+  --accent: hsl(220 13% 26%);
+  --accent-foreground: hsl(162 73% 30%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(220 13% 26%);
+  --input: hsl(220 13% 26%);
+  --ring: hsl(162 73% 30%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: var(--font-inter);
+  }
+}
+
+/* Custom styles for the app */
+.bg-gray-50 {
+  background-color: var(--ramp-gray-50);
+}
+
+.text-gray-900 {
+  color: var(--ramp-gray-900);
+}
+
+.text-gray-600 {
+  color: var(--ramp-gray-600);
+}
+
+.text-gray-500 {
+  color: var(--ramp-gray-500);
+}
+
+.text-gray-400 {
+  color: var(--ramp-gray-400);
+}
+
+.text-gray-700 {
+  color: var(--ramp-gray-700);
+}
+
+.border-gray-200 {
+  border-color: var(--ramp-gray-200);
+}
+
+.border-gray-100 {
+  border-color: var(--ramp-gray-100);
+}
+
+.bg-gray-100 {
+  background-color: var(--ramp-gray-100);
+}
+
+.bg-gray-200 {
+  background-color: var(--ramp-gray-200);
+}
+
+.text-green-600 {
+  color: var(--ramp-green-600);
+}
+
+.text-green-700 {
+  color: var(--ramp-green-700);
+}
+
+.bg-green-600 {
+  background-color: var(--ramp-green-600);
+}
+
+.bg-green-700 {
+  background-color: var(--ramp-green-700);
+}
+
+.bg-green-100 {
+  background-color: var(--ramp-green-100);
+}
+
+.bg-green-200 {
+  background-color: var(--ramp-green-200);
+}
+
+.bg-green-500 {
+  background-color: var(--ramp-green-500);
+}
+
+.border-green-600 {
+  border-color: var(--ramp-green-600);
+}
+
+.hover\:bg-green-700:hover {
+  background-color: var(--ramp-green-700);
+}
+
+.hover\:bg-green-200:hover {
+  background-color: var(--ramp-green-200);
+}
+
+.hover\:text-gray-700:hover {
+  color: var(--ramp-gray-700);
+}
