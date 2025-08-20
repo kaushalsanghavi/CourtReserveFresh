@@ -1,19 +1,9 @@
 
 import { type Member, type InsertMember, type Booking, type InsertBooking, type Activity, type InsertActivity } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { promises as fs } from "fs";
-import path from "path";
+import Database from "@replit/database";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-
-// Ensure data directory exists
-async function ensureDataDir() {
-  try {
-    await fs.access(DATA_DIR);
-  } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-  }
-}
+const db = new Database();
 
 export interface IStorage {
   // Members
@@ -32,13 +22,12 @@ export interface IStorage {
   createActivity(activity: InsertActivity): Promise<Activity>;
 }
 
-export class FileStorage implements IStorage {
+export class ReplDBStorage implements IStorage {
   constructor() {
     this.initializeData();
   }
 
   private async initializeData() {
-    await ensureDataDir();
     // Initialize with default members if they don't exist
     const existingMembers = await this.getMembers();
     if (existingMembers.length === 0) {
@@ -54,27 +43,29 @@ export class FileStorage implements IStorage {
         { id: randomUUID(), name: "Anjali", initials: "AN", avatarColor: "teal", createdAt: new Date() },
         { id: randomUUID(), name: "Kumar", initials: "KU", avatarColor: "cyan", createdAt: new Date() },
       ];
-      await this.saveData("members", defaultMembers);
+      await db.set("members", defaultMembers);
     }
-  }
-
-  private async loadData<T>(filename: string): Promise<T[]> {
-    try {
-      const filePath = path.join(DATA_DIR, `${filename}.json`);
-      const data = await fs.readFile(filePath, "utf-8");
-      return JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-
-  private async saveData<T>(filename: string, data: T[]): Promise<void> {
-    const filePath = path.join(DATA_DIR, `${filename}.json`);
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2));
   }
 
   async getMembers(): Promise<Member[]> {
-    return await this.loadData<Member>("members");
+    try {
+      const result = await db.get("members");
+      console.log('Members result:', result);
+      // Handle different possible return formats from ReplDB
+      if (result === null || result === undefined) {
+        return [];
+      }
+      if (Array.isArray(result)) {
+        return result;
+      }
+      if (result && typeof result === 'object' && 'ok' in result && result.ok && result.value) {
+        return result.value;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error getting members:', error);
+      return [];
+    }
   }
 
   async createMember(insertMember: InsertMember): Promise<Member> {
@@ -85,12 +76,28 @@ export class FileStorage implements IStorage {
       createdAt: new Date(),
     };
     members.push(member);
-    await this.saveData("members", members);
+    await db.set("members", members);
     return member;
   }
 
   async getBookings(): Promise<Booking[]> {
-    return await this.loadData<Booking>("bookings");
+    try {
+      const result = await db.get("bookings");
+      console.log('Bookings result:', result);
+      if (result === null || result === undefined) {
+        return [];
+      }
+      if (Array.isArray(result)) {
+        return result;
+      }
+      if (result && typeof result === 'object' && 'ok' in result && result.ok && result.value) {
+        return result.value;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error getting bookings:', error);
+      return [];
+    }
   }
 
   async getBookingsByDate(date: string): Promise<Booking[]> {
@@ -111,7 +118,7 @@ export class FileStorage implements IStorage {
       createdAt: new Date(),
     };
     bookings.push(booking);
-    await this.saveData("bookings", bookings);
+    await db.set("bookings", bookings);
     return booking;
   }
 
@@ -125,13 +132,27 @@ export class FileStorage implements IStorage {
       return false; // No booking found to delete
     }
     
-    await this.saveData("bookings", filteredBookings);
+    await db.set("bookings", filteredBookings);
     return true;
   }
 
   async getActivities(): Promise<Activity[]> {
-    const activities = await this.loadData<Activity>("activities");
-    return activities.sort((a: Activity, b: Activity) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    try {
+      const result = await db.get("activities");
+      console.log('Activities result:', result);
+      let allActivities: Activity[] = [];
+      if (result === null || result === undefined) {
+        allActivities = [];
+      } else if (Array.isArray(result)) {
+        allActivities = result;
+      } else if (result && typeof result === 'object' && 'ok' in result && result.ok && result.value) {
+        allActivities = result.value;
+      }
+      return allActivities.sort((a: Activity, b: Activity) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } catch (error) {
+      console.error('Error getting activities:', error);
+      return [];
+    }
   }
 
   async createActivity(insertActivity: InsertActivity): Promise<Activity> {
@@ -142,9 +163,9 @@ export class FileStorage implements IStorage {
       createdAt: new Date(),
     };
     activities.push(activity);
-    await this.saveData("activities", activities);
+    await db.set("activities", activities);
     return activity;
   }
 }
 
-export const storage = new FileStorage();
+export const storage = new ReplDBStorage();
