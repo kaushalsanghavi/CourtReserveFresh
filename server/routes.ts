@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { bookSlotSchema } from "@shared/schema";
+import { bookSlotSchema, insertCommentSchema } from "@shared/schema";
 import { z } from "zod";
 
 function parseUserAgent(userAgent: string): string {
@@ -195,6 +195,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(activities);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  // Get all comments
+  app.get("/api/comments", async (req, res) => {
+    try {
+      const comments = await storage.getComments();
+      res.json(comments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch comments" });
+    }
+  });
+
+  // Get comments by date
+  app.get("/api/comments/:date", async (req, res) => {
+    try {
+      const { date } = req.params;
+      const comments = await storage.getCommentsByDate(date);
+      res.json(comments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch comments for date" });
+    }
+  });
+
+  // Add a comment
+  app.post("/api/comments", async (req, res) => {
+    try {
+      const validatedData = insertCommentSchema.parse(req.body);
+      const { memberId, memberName, date, comment } = validatedData;
+
+      // Create the comment
+      const newComment = await storage.createComment({
+        memberId,
+        memberName,
+        date,
+        comment,
+      });
+
+      res.json(newComment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create comment" });
     }
   });
 

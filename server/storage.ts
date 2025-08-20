@@ -1,5 +1,5 @@
 
-import { type Member, type InsertMember, type Booking, type InsertBooking, type Activity, type InsertActivity } from "@shared/schema";
+import { type Member, type InsertMember, type Booking, type InsertBooking, type Activity, type InsertActivity, type Comment, type InsertComment } from "@shared/schema";
 import { randomUUID } from "crypto";
 import Database from "@replit/database";
 
@@ -20,6 +20,11 @@ export interface IStorage {
   // Activities
   getActivities(): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
+  
+  // Comments
+  getComments(): Promise<Comment[]>;
+  getCommentsByDate(date: string): Promise<Comment[]>;
+  createComment(comment: InsertComment): Promise<Comment>;
 }
 
 export class ReplDBStorage implements IStorage {
@@ -165,6 +170,47 @@ export class ReplDBStorage implements IStorage {
     activities.push(activity);
     await db.set("activities", activities);
     return activity;
+  }
+
+  // Comments
+  async getComments(): Promise<Comment[]> {
+    try {
+      const result = await db.get("comments");
+      console.log('Comments result:', result);
+      
+      if (result === null || result === undefined) {
+        return [];
+      }
+      
+      if (result && typeof result === 'object' && 'ok' in result) {
+        if (result.ok && result.value) {
+          return Array.isArray(result.value) ? result.value : [];
+        }
+        return [];
+      }
+      
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error("Error getting comments:", error);
+      return [];
+    }
+  }
+
+  async getCommentsByDate(date: string): Promise<Comment[]> {
+    const allComments = await this.getComments();
+    return allComments.filter(comment => comment.date === date);
+  }
+
+  async createComment(insertComment: InsertComment): Promise<Comment> {
+    const comments = await this.getComments();
+    const comment: Comment = {
+      ...insertComment,
+      id: randomUUID(),
+      createdAt: new Date(),
+    };
+    comments.push(comment);
+    await db.set("comments", comments);
+    return comment;
   }
 }
 
