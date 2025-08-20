@@ -51,25 +51,9 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
   };
 
   const isButtonDisabled = () => {
-    console.log(`DayCard ${dateStr} - selectedMemberId:`, selectedMemberId);
-    console.log(`DayCard ${dateStr} - isBooking:`, isBooking);
-    console.log(`DayCard ${dateStr} - isCancelling:`, isCancelling);
-    console.log(`DayCard ${dateStr} - dayBookings.length:`, dayBookings.length);
-    console.log(`DayCard ${dateStr} - hasSelectedMemberBooking:`, hasSelectedMemberBooking);
-    
-    if (!selectedMemberId) {
-      console.log(`DayCard ${dateStr} - Button disabled: no selectedMemberId`);
-      return true;
-    }
-    if (isBooking || isCancelling) {
-      console.log(`DayCard ${dateStr} - Button disabled: booking/cancelling in progress`);
-      return true;
-    }
-    if (dayBookings.length >= 6 && !hasSelectedMemberBooking) {
-      console.log(`DayCard ${dateStr} - Button disabled: fully booked`);
-      return true;
-    }
-    console.log(`DayCard ${dateStr} - Button enabled`);
+    if (!selectedMemberId) return true;
+    if (isBooking || isCancelling) return true;
+    if (dayBookings.length >= 6 && !hasSelectedMemberBooking) return true;
     return false;
   };
 
@@ -134,9 +118,6 @@ export default function BookingCalendar() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { selectedMemberId, selectedMember } = useSelectedMember();
-  
-  console.log('BookingCalendar - selectedMemberId:', selectedMemberId);
-  console.log('BookingCalendar - selectedMember:', selectedMember);
 
   const { data: members = [] } = useQuery<Member[]>({
     queryKey: ["/api/members"],

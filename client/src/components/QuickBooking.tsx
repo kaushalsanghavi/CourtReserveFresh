@@ -26,9 +26,6 @@ export const SelectedMemberProvider = ({ children }: { children: React.ReactNode
   const { data: members = [] } = useQuery<Member[]>({
     queryKey: ["/api/members"],
   });
-  
-  console.log('SelectedMemberProvider - selectedMemberId:', selectedMemberId);
-  console.log('SelectedMemberProvider - members length:', members.length);
 
   // Load last selected member from cookie on component mount
   useEffect(() => {
@@ -76,10 +73,6 @@ function QuickBookingContent() {
   const { data: members = [] } = useQuery<Member[]>({
     queryKey: ["/api/members"],
   });
-
-  console.log('QuickBookingContent - selectedMemberId:', selectedMemberId);
-  console.log('QuickBookingContent - members length:', members.length);
-  console.log('QuickBookingContent - setSelectedMemberId function:', typeof setSelectedMemberId);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8" data-testid="quick-booking-card">
