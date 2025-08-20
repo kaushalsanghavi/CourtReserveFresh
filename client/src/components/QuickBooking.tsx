@@ -1,62 +1,45 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+import { useState, createContext, useContext } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import type { Member } from "@shared/schema";
-import { format } from "date-fns";
 
-export default function QuickBooking() {
+interface SelectedMemberContextType {
+  selectedMemberId: string;
+  setSelectedMemberId: (memberId: string) => void;
+  selectedMember: Member | undefined;
+}
+
+const SelectedMemberContext = createContext<SelectedMemberContextType | undefined>(undefined);
+
+export const useSelectedMember = () => {
+  const context = useContext(SelectedMemberContext);
+  if (!context) {
+    throw new Error("useSelectedMember must be used within SelectedMemberProvider");
+  }
+  return context;
+};
+
+export const SelectedMemberProvider = ({ children }: { children: React.ReactNode }) => {
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
+  
   const { data: members = [] } = useQuery<Member[]>({
     queryKey: ["/api/members"],
   });
 
-  const quickBookMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedMemberId) {
-        throw new Error("Please select a member");
-      }
+  const selectedMember = members.find(m => m.id === selectedMemberId);
 
-      const selectedMember = members.find(m => m.id === selectedMemberId);
-      if (!selectedMember) {
-        throw new Error("Member not found");
-      }
+  return (
+    <SelectedMemberContext.Provider value={{ selectedMemberId, setSelectedMemberId, selectedMember }}>
+      {children}
+    </SelectedMemberContext.Provider>
+  );
+};
 
-      const today = format(new Date(), "yyyy-MM-dd");
-      const dayOfWeek = new Date().getDay();
-      
-      // Check if today is a weekday
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        throw new Error("Bookings are only allowed on weekdays");
-      }
-
-      return apiRequest("POST", "/api/bookings", {
-        memberId: selectedMemberId,
-        memberName: selectedMember.name,
-        date: today,
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Booking successful",
-        description: "Slot booked for today",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
-      setSelectedMemberId("");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Booking failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+export default function QuickBooking() {
+  const { selectedMemberId, setSelectedMemberId } = useSelectedMember();
+  
+  const { data: members = [] } = useQuery<Member[]>({
+    queryKey: ["/api/members"],
   });
 
   return (
@@ -79,14 +62,11 @@ export default function QuickBooking() {
             </SelectContent>
           </Select>
         </div>
-        <Button 
-          onClick={() => quickBookMutation.mutate()}
-          disabled={quickBookMutation.isPending || !selectedMemberId}
-          className="bg-green-600 hover:bg-green-700"
-          data-testid="button-quick-book"
-        >
-          {quickBookMutation.isPending ? "Booking..." : "Quick Book"}
-        </Button>
+        {selectedMemberId && (
+          <div className="text-sm text-gray-600">
+            Selected: <span className="font-medium text-gray-900">{members.find(m => m.id === selectedMemberId)?.name}</span>
+          </div>
+        )}
       </div>
     </div>
   );

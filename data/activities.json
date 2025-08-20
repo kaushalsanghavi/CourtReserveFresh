@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "memberId": "bf15ec17-c0cd-405e-9fdb-4f6a7db389a9",
+    "memberName": "Ashish",
+    "action": "booked a slot for",
+    "date": "2025-08-22",
+    "deviceInfo": "Mac Device",
+    "id": "e7b3ebca-8224-4340-bf88-11ce3ee3894f",
+    "createdAt": "2025-08-20T08:02:55.753Z"
+  },
+  {
+    "memberId": "bf15ec17-c0cd-405e-9fdb-4f6a7db389a9",
+    "memberName": "Ashish",
+    "action": "booked a slot for",
+    "date": "2025-08-21",
+    "deviceInfo": "Mac Device",
+    "id": "4ed4db90-0295-4dab-ab27-2448b36133f0",
+    "createdAt": "2025-08-20T08:04:07.861Z"
+  }
+]

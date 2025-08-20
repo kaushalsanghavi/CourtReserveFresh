@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useSelectedMember } from "./QuickBooking";
 import type { Member, Booking } from "@shared/schema";
 import { format, addDays, startOfWeek, isWeekend, isSameDay } from "date-fns";
 
@@ -10,16 +11,51 @@ interface DayCardProps {
   bookings: Booking[];
   members: Member[];
   onBookSlot: (date: string) => void;
+  onCancelBooking: (memberId: string, date: string) => void;
   isBooking: boolean;
+  isCancelling: boolean;
+  selectedMemberId: string;
 }
 
-function DayCard({ date, bookings, members, onBookSlot, isBooking }: DayCardProps) {
+function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooking, isCancelling, selectedMemberId }: DayCardProps) {
   const dateStr = format(date, "yyyy-MM-dd");
   const dayBookings = bookings.filter(b => b.date === dateStr);
   const isToday = isSameDay(date, new Date());
   const isWeekendDay = isWeekend(date);
 
+  // Check if selected member has a booking for this date
+  const memberBooking = dayBookings.find(b => b.memberId === selectedMemberId);
+  const hasSelectedMemberBooking = !!memberBooking;
+
   if (isWeekendDay) return null;
+
+  const handleButtonClick = () => {
+    if (hasSelectedMemberBooking) {
+      onCancelBooking(selectedMemberId, dateStr);
+    } else {
+      onBookSlot(dateStr);
+    }
+  };
+
+  const getButtonText = () => {
+    if (isBooking || isCancelling) {
+      return hasSelectedMemberBooking ? "Cancelling..." : "Booking...";
+    }
+    if (dayBookings.length >= 6 && !hasSelectedMemberBooking) {
+      return "Fully Booked";
+    }
+    if (hasSelectedMemberBooking) {
+      return "Cancel Booking";
+    }
+    return "Book Slot";
+  };
+
+  const isButtonDisabled = () => {
+    if (!selectedMemberId) return true;
+    if (isBooking || isCancelling) return true;
+    if (dayBookings.length >= 6 && !hasSelectedMemberBooking) return true;
+    return false;
+  };
 
   return (
     <div className="border border-gray-200 rounded-lg p-4" data-testid={`day-card-${dateStr}`}>
@@ -45,7 +81,14 @@ function DayCard({ date, bookings, members, onBookSlot, isBooking }: DayCardProp
         {dayBookings.length > 0 ? (
           <div className="flex flex-wrap gap-1" data-testid={`booked-members-${dateStr}`}>
             {dayBookings.map((booking) => (
-              <span key={booking.id} className="px-2 py-1 bg-gray-100 text-xs text-gray-700 rounded">
+              <span 
+                key={booking.id} 
+                className={`px-2 py-1 text-xs rounded ${
+                  booking.memberId === selectedMemberId 
+                    ? "bg-green-100 text-green-700 font-medium" 
+                    : "bg-gray-100 text-gray-700"
+                }`}
+              >
                 {booking.memberName}
               </span>
             ))}
@@ -56,12 +99,16 @@ function DayCard({ date, bookings, members, onBookSlot, isBooking }: DayCardProp
       </div>
       
       <Button 
-        className="w-full bg-green-100 text-green-700 hover:bg-green-200 font-medium"
-        onClick={() => onBookSlot(dateStr)}
-        disabled={isBooking || dayBookings.length >= 6}
+        className={`w-full font-medium ${
+          hasSelectedMemberBooking
+            ? "bg-red-100 text-red-700 hover:bg-red-200"
+            : "bg-green-100 text-green-700 hover:bg-green-200"
+        }`}
+        onClick={handleButtonClick}
+        disabled={isButtonDisabled()}
         data-testid={`button-book-slot-${dateStr}`}
       >
-        {dayBookings.length >= 6 ? "Fully Booked" : "Book Slot"}
+        {getButtonText()}
       </Button>
     </div>
   );
@@ -70,6 +117,7 @@ function DayCard({ date, bookings, members, onBookSlot, isBooking }: DayCardProp
 export default function BookingCalendar() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { selectedMemberId, selectedMember } = useSelectedMember();
 
   const { data: members = [] } = useQuery<Member[]>({
     queryKey: ["/api/members"],
@@ -81,16 +129,13 @@ export default function BookingCalendar() {
 
   const bookSlotMutation = useMutation({
     mutationFn: async (date: string) => {
-      // For now, we'll use the first member as a placeholder
-      // In a real app, you'd have user authentication
-      const defaultMember = members[0];
-      if (!defaultMember) {
-        throw new Error("No members available");
+      if (!selectedMemberId || !selectedMember) {
+        throw new Error("Please select a member");
       }
 
       return apiRequest("POST", "/api/bookings", {
-        memberId: defaultMember.id,
-        memberName: defaultMember.name,
+        memberId: selectedMemberId,
+        memberName: selectedMember.name,
         date,
       });
     },
@@ -105,6 +150,27 @@ export default function BookingCalendar() {
     onError: (error: Error) => {
       toast({
         title: "Booking failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const cancelBookingMutation = useMutation({
+    mutationFn: async ({ memberId, date }: { memberId: string; date: string }) => {
+      return apiRequest("DELETE", `/api/bookings/${memberId}/${date}`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Booking cancelled",
+        description: "Your booking has been cancelled",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Cancellation failed",
         description: error.message,
         variant: "destructive",
       });
@@ -135,6 +201,11 @@ export default function BookingCalendar() {
           <h2 className="text-lg font-medium text-gray-900">2-Week Booking Window</h2>
           <p className="text-sm text-gray-600">Weekdays only (Monday - Friday)</p>
         </div>
+        {!selectedMemberId && (
+          <div className="text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded-md">
+            Select a member above to book or cancel slots
+          </div>
+        )}
       </div>
 
       {/* Week 1 */}
@@ -150,7 +221,10 @@ export default function BookingCalendar() {
               bookings={bookings}
               members={members}
               onBookSlot={(dateStr) => bookSlotMutation.mutate(dateStr)}
+              onCancelBooking={(memberId, date) => cancelBookingMutation.mutate({ memberId, date })}
               isBooking={bookSlotMutation.isPending}
+              isCancelling={cancelBookingMutation.isPending}
+              selectedMemberId={selectedMemberId}
             />
           ))}
         </div>
@@ -169,7 +243,10 @@ export default function BookingCalendar() {
               bookings={bookings}
               members={members}
               onBookSlot={(dateStr) => bookSlotMutation.mutate(dateStr)}
+              onCancelBooking={(memberId, date) => cancelBookingMutation.mutate({ memberId, date })}
               isBooking={bookSlotMutation.isPending}
+              isCancelling={cancelBookingMutation.isPending}
+              selectedMemberId={selectedMemberId}
             />
           ))}
         </div>

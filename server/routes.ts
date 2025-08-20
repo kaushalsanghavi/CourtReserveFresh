@@ -5,38 +5,71 @@ import { bookSlotSchema } from "@shared/schema";
 import { z } from "zod";
 
 function parseUserAgent(userAgent: string): string {
-  // Basic user agent parsing for device info
+  if (!userAgent) return 'Unknown Device';
+
+  // More detailed user agent parsing for exact device info
   const isAndroid = userAgent.includes('Android');
   const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad');
   const isWindows = userAgent.includes('Windows');
   const isMac = userAgent.includes('Macintosh');
   const isLinux = userAgent.includes('Linux') && !isAndroid;
 
+  // Browser detection
+  const isChrome = userAgent.includes('Chrome') && !userAgent.includes('Edg');
+  const isFirefox = userAgent.includes('Firefox');
+  const isSafari = userAgent.includes('Safari') && !userAgent.includes('Chrome');
+  const isEdge = userAgent.includes('Edg');
+
+  let browserName = 'Unknown Browser';
+  if (isChrome) browserName = 'Chrome';
+  else if (isFirefox) browserName = 'Firefox';
+  else if (isSafari) browserName = 'Safari';
+  else if (isEdge) browserName = 'Edge';
+
   if (isAndroid) {
     const androidMatch = userAgent.match(/Android (\d+(?:\.\d+)?)/);
     const version = androidMatch ? androidMatch[1] : 'Unknown';
-    return `Android Device (Android ${version})`;
+    
+    // Try to extract device model
+    const modelMatch = userAgent.match(/;\s*([^)]+)\)/);
+    const deviceModel = modelMatch ? modelMatch[1].replace(/[;,]/g, '').trim() : 'Unknown Device';
+    
+    return `${deviceModel} (Android ${version}) - ${browserName}`;
   }
   
   if (isIOS) {
-    const iosMatch = userAgent.match(/OS (\d+(?:_\d+)?)/);
-    const version = iosMatch ? iosMatch[1].replace('_', '.') : 'Unknown';
-    return `iOS Device (iOS ${version})`;
+    const iosMatch = userAgent.match(/OS (\d+(?:_\d+)*)/);
+    const version = iosMatch ? iosMatch[1].replace(/_/g, '.') : 'Unknown';
+    
+    const isIPhone = userAgent.includes('iPhone');
+    const isIPad = userAgent.includes('iPad');
+    const deviceType = isIPad ? 'iPad' : isIPhone ? 'iPhone' : 'iOS Device';
+    
+    return `${deviceType} (iOS ${version}) - ${browserName}`;
   }
   
   if (isWindows) {
-    return 'Windows Device';
+    const windowsMatch = userAgent.match(/Windows NT (\d+\.\d+)/);
+    const version = windowsMatch ? windowsMatch[1] : 'Unknown';
+    const windowsVersion = version === '10.0' ? 'Windows 10' : 
+                          version === '6.3' ? 'Windows 8.1' :
+                          version === '6.1' ? 'Windows 7' : `Windows NT ${version}`;
+    
+    return `${windowsVersion} Desktop - ${browserName}`;
   }
   
   if (isMac) {
-    return 'Mac Device';
+    const macMatch = userAgent.match(/Mac OS X (\d+[._]\d+(?:[._]\d+)?)/);
+    const version = macMatch ? macMatch[1].replace(/_/g, '.') : 'Unknown';
+    
+    return `Mac Desktop (macOS ${version}) - ${browserName}`;
   }
   
   if (isLinux) {
-    return 'Linux Device';
+    return `Linux Desktop - ${browserName}`;
   }
   
-  return 'Unknown Device';
+  return `Unknown Device - ${browserName}`;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {

@@ -2,11 +2,20 @@
 
 ## Overview
 
-A full-stack badminton court booking application built with modern web technologies. The system allows users to book and manage badminton court slots, view booking calendars, track activity history, and monitor monthly participation statistics. The application uses a clean, professional design inspired by the Ramp design system with custom color palettes and shadcn/ui components.
+A full-stack badminton court booking application built with modern web technologies. The system allows users to book and manage badminton court slots, view booking calendars, track activity history, and monitor monthly participation statistics. The application features proper member selection, booking/cancellation functionality, detailed device tracking with browser and OS information, and uses a clean, professional design inspired by the Ramp design system with custom color palettes and shadcn/ui components.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes (Aug 20, 2025)
+
+- Fixed booking system bug where all bookings were assigned to first member (Ashish)
+- Implemented SelectedMemberProvider context for proper member selection across components  
+- Added booking/cancellation functionality with member-specific actions
+- Enhanced device tracking to capture exact device model, OS version, and browser information
+- Updated UI to show selected member and highlight their bookings in green
+- Added red cancel buttons for existing member bookings
 
 ## System Architecture
 
