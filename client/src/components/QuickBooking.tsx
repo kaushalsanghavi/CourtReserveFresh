@@ -104,7 +104,11 @@ function QuickBookingContent() {
   );
 }
 
-// Export the wrapper component that doesn't need context
+// Export the wrapper component that provides context
 export default function QuickBooking() {
-  return <QuickBookingContent />;
+  return (
+    <SelectedMemberProvider>
+      <QuickBookingContent />
+    </SelectedMemberProvider>
+  );
 }
