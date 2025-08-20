@@ -1,0 +1,117 @@
+Badminton Court Booking System - Full-Stack App with Ramp Design System
+
+Create a badminton court booking application with the following specifications:
+
+Tech Stack:
+
+Frontend: React + TypeScript + Vite
+Backend: Express.js + TypeScript
+Database: File-based JSON storage (badminton-data.json)
+UI: shadcn/ui components + Tailwind CSS
+State Management: TanStack Query (React Query)
+Routing: Wouter
+Forms: React Hook Form + Zod validation
+Design System - Ramp-Inspired Colors:
+
+/* Custom color palette */
+--ramp-gray-50: hsl(220 14% 96%);
+--ramp-gray-100: hsl(220 13% 91%);
+--ramp-gray-200: hsl(220 13% 83%);
+--ramp-gray-300: hsl(220 9% 72%);
+--ramp-gray-400: hsl(220 9% 46%);
+--ramp-gray-500: hsl(220 9% 36%);
+--ramp-gray-600: hsl(220 13% 26%);
+--ramp-gray-700: hsl(220 14% 20%);
+--ramp-gray-800: hsl(220 18% 12%);
+--ramp-gray-900: hsl(220 26% 6%);
+--ramp-green-50: hsl(151 81% 96%);
+--ramp-green-100: hsl(154 100% 91%);
+--ramp-green-200: hsl(156 100% 82%);
+--ramp-green-300: hsl(158 100% 68%);
+--ramp-green-400: hsl(160 84% 39%);
+--ramp-green-500: hsl(162 73% 30%);
+--ramp-green-600: hsl(164 86% 22%);
+--ramp-green-700: hsl(166 91% 17%);
+--ramp-green-800: hsl(168 84% 14%);
+--ramp-green-900: hsl(170 97% 11%);
+Design Configuration:
+
+shadcn/ui style: "new-york" variant
+Base color: neutral
+CSS Variables: enabled
+Font: Inter (primary), Georgia (serif), Menlo (mono)
+Border radius: 0.5rem (--radius)
+Tailwind Configuration:
+
+Extend colors to include ramp-gray and ramp-green palettes
+Custom CSS variables for all design tokens
+Dark mode support with class-based switching
+Typography plugin enabled
+Animation utilities for smooth transitions
+UI Color Scheme:
+
+Primary: Blue tones (hsl(203.8863 88.2845% 53.1373%))
+Accent: Light blue (hsl(211.5789 51.3514% 92.7451%))
+Destructive: Red tones for cancel actions
+Success: Use ramp-green variants
+Neutral: Use ramp-gray variants
+Card backgrounds: Light gray (hsl(180 6.6667% 97.0588%))
+Core Features:
+
+Calendar-based booking system - weekdays only, 2-week lookahead
+Member management - predefined list of 10 members (Ashish, Gagan, He-man, Kaushal, Main hoon na, Aswini, Rahul, RK, Anjali, Kumar)
+Slot validation - max 6 slots per day, no double-booking per member
+Activity tracking - real-time feed of bookings/cancellations
+Monthly participation stats - analytics by member
+Device detection - tracks booking source (mobile/desktop)
+Storage System:
+
+Persistent file storage using badminton-data.json
+FileStorage class with automatic save/load functionality
+Data structure: JSON with bookings array, activities array, and lastUpdated timestamp
+Auto-persistence: Saves to disk on every booking/cancellation
+Data recovery: Loads existing data on server startup
+Data trimming: Admin endpoint to remove data older than 3 months
+Database Schema:
+
+bookings: id, date (YYYY-MM-DD), memberName, deviceInfo, createdAt
+activities: id, type (book/cancel), memberName, date, deviceInfo, createdAt
+API Endpoints:
+
+GET /api/bookings - all bookings
+GET /api/bookings/date/:date - bookings by date
+POST /api/bookings - create booking
+DELETE /api/bookings/:date/:memberName - cancel booking
+GET /api/activities - recent activities
+GET /api/stats/monthly/:year/:month - monthly stats
+GET /api/members - member list
+POST /api/admin/trim-data - data cleanup
+UI Components Needed:
+
+BookingCalendar - main calendar interface
+MemberSelector - dropdown for member selection
+RecentActivity - activity feed
+MonthlyParticipation - stats visualization
+Business Rules:
+
+Time slot: 8:30 AM - 9:45 AM weekdays only
+Maximum 6 bookings per day
+One booking per member per day
+Activity logging for all booking/cancellation actions
+Development Setup:
+
+Port 5000 for the application
+File-based storage for persistence across server restarts
+Hot reloading with Vite integration
+TypeScript throughout with strict type checking
+Styling Implementation:
+
+Import Inter font in index.css
+Set up CSS custom properties for both light and dark themes
+Configure Tailwind to use the custom color variables
+Use shadcn/ui "new-york" style components
+Implement responsive design with mobile-first approach
+Use ramp-gray variants for subtle UI elements and borders
+Use ramp-green variants for success states and positive actions
+The app should have a clean, professional interface matching Ramp's design language with the single-page layout featuring tabs for recent activity and monthly participation stats alongside the main booking calendar.
+
