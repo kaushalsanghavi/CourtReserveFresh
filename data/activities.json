@@ -1,12 +1,12 @@
 [
   {
-    "memberId": "bf15ec17-c0cd-405e-9fdb-4f6a7db389a9",
-    "memberName": "Ashish",
+    "memberId": "cfbde893-de52-4bf0-94e5-31b8f19edbcd",
+    "memberName": "He-man",
     "action": "booked a slot for",
-    "date": "2025-08-22",
-    "deviceInfo": "Mac Device",
-    "id": "e7b3ebca-8224-4340-bf88-11ce3ee3894f",
-    "createdAt": "2025-08-20T08:02:55.753Z"
+    "date": "2025-08-21",
+    "deviceInfo": "Mac Desktop (macOS 10.15.7) - Chrome",
+    "id": "48f23b3a-4398-41c0-8359-001646d3e0be",
+    "createdAt": "2025-08-20T08:10:12.562Z"
   },
   {
     "memberId": "bf15ec17-c0cd-405e-9fdb-4f6a7db389a9",
@@ -16,5 +16,23 @@
     "deviceInfo": "Mac Device",
     "id": "4ed4db90-0295-4dab-ab27-2448b36133f0",
     "createdAt": "2025-08-20T08:04:07.861Z"
+  },
+  {
+    "memberId": "bf15ec17-c0cd-405e-9fdb-4f6a7db389a9",
+    "memberName": "Ashish",
+    "action": "booked a slot for",
+    "date": "2025-08-22",
+    "deviceInfo": "Mac Device",
+    "id": "e7b3ebca-8224-4340-bf88-11ce3ee3894f",
+    "createdAt": "2025-08-20T08:02:55.753Z"
+  },
+  {
+    "memberId": "17c1db0d-a012-41b2-9e47-491a3c1462e4",
+    "memberName": "Kaushal",
+    "action": "booked a slot for",
+    "date": "2025-08-22",
+    "deviceInfo": "Mac Desktop (macOS 10.15.7) - Chrome",
+    "id": "fe818541-c973-4044-a427-a41ea2c1fa69",
+    "createdAt": "2025-08-20T08:10:20.613Z"
   }
 ]
