@@ -1,4 +1,5 @@
-import { useState, createContext, useContext } from "react";
+
+import { useState, createContext, useContext, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Member } from "@shared/schema";
@@ -26,16 +27,46 @@ export const SelectedMemberProvider = ({ children }: { children: React.ReactNode
     queryKey: ["/api/members"],
   });
 
+  // Load last selected member from cookie on component mount
+  useEffect(() => {
+    const lastSelectedMember = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('lastSelectedMember='))
+      ?.split('=')[1];
+    
+    if (lastSelectedMember && members.length > 0) {
+      // Verify the member still exists in the current member list
+      const memberExists = members.find(m => m.id === lastSelectedMember);
+      if (memberExists) {
+        setSelectedMemberId(lastSelectedMember);
+      }
+    }
+  }, [members]);
+
+  // Save selected member to cookie whenever it changes
+  const handleSetSelectedMemberId = (memberId: string) => {
+    setSelectedMemberId(memberId);
+    if (memberId) {
+      // Set cookie to expire in 30 days
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30);
+      document.cookie = `lastSelectedMember=${memberId}; expires=${expirationDate.toUTCString()}; path=/`;
+    } else {
+      // Clear cookie if no member selected
+      document.cookie = 'lastSelectedMember=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+    }
+  };
+
   const selectedMember = members.find(m => m.id === selectedMemberId);
 
   return (
-    <SelectedMemberContext.Provider value={{ selectedMemberId, setSelectedMemberId, selectedMember }}>
+    <SelectedMemberContext.Provider value={{ selectedMemberId, setSelectedMemberId: handleSetSelectedMemberId, selectedMember }}>
       {children}
     </SelectedMemberContext.Provider>
   );
 };
 
-export default function QuickBooking() {
+function QuickBooking() {
   const { selectedMemberId, setSelectedMemberId } = useSelectedMember();
   
   const { data: members = [] } = useQuery<Member[]>({
@@ -71,3 +102,5 @@ export default function QuickBooking() {
     </div>
   );
 }
+
+export default QuickBooking;
