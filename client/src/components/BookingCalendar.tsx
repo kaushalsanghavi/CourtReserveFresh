@@ -112,7 +112,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
         {getButtonText()}
       </Button>
       
-      <Comments date={dateStr} />
+      <Comments date={dateStr} variant="compact" />
     </div>
   );
 }

@@ -1,4 +1,25 @@
-import { Clock, Calendar } from "lucide-react";
+import { Clock, Calendar, Palette } from "lucide-react";
+import { Link, useLocation } from "wouter";
+
+function HeaderNavigation() {
+  const [location] = useLocation();
+  
+  return (
+    <div className="flex items-center gap-4 border-l border-gray-300 pl-6">
+      {location !== "/" && (
+        <Link href="/" className="text-sm text-gray-600 hover:text-gray-900">
+          ← Calendar
+        </Link>
+      )}
+      {location !== "/comments-demo" && (
+        <Link href="/comments-demo" className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
+          <Palette className="w-4 h-4" />
+          Design Options
+        </Link>
+      )}
+    </div>
+  );
+}
 
 export default function Header() {
   return (
@@ -17,6 +38,7 @@ export default function Header() {
             <Calendar className="w-4 h-4 mr-2" />
             <span data-testid="available-slots">6 slots available daily</span>
           </span>
+          <HeaderNavigation />
         </div>
       </div>
     </header>

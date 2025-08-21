@@ -2,17 +2,21 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useSelectedMember } from "./QuickBooking";
 import type { Comment } from "@shared/schema";
 import { format } from "date-fns";
+import { MessageCircle, Plus } from "lucide-react";
 
 interface CommentsProps {
   date: string;
+  variant?: 'inline' | 'compact' | 'modal';
 }
 
-export default function Comments({ date }: CommentsProps) {
+export default function Comments({ date, variant = 'modal' }: CommentsProps) {
   const [newComment, setNewComment] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -59,9 +63,9 @@ export default function Comments({ date }: CommentsProps) {
     addCommentMutation.mutate(newComment.trim());
   };
 
-  return (
-    <div className="mt-4 pt-4 border-t border-gray-200">
-      <h5 className="text-xs text-gray-500 uppercase tracking-wide mb-2">COMMENTS</h5>
+  const CommentsDisplay = ({ inDialog = false }: { inDialog?: boolean }) => (
+    <div className={inDialog ? "" : "mt-4 pt-4 border-t border-gray-200"}>
+      {!inDialog && <h5 className="text-xs text-gray-500 uppercase tracking-wide mb-2">COMMENTS</h5>}
       
       {/* Existing comments */}
       {comments.length > 0 ? (
@@ -108,4 +112,73 @@ export default function Comments({ date }: CommentsProps) {
       )}
     </div>
   );
+
+  // Modal variant - opens comments in a dialog
+  if (variant === 'modal') {
+    return (
+      <div className="mt-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="w-4 h-4 text-gray-400" />
+          <span className="text-sm text-gray-600">
+            {comments.length} comment{comments.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              data-testid={`button-view-comments-${date}`}
+            >
+              View
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Comments for {format(new Date(date), "MMM d, yyyy")}</DialogTitle>
+            </DialogHeader>
+            <CommentsDisplay inDialog={true} />
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // Compact variant - shows just a comment indicator with count
+  if (variant === 'compact') {
+    return (
+      <div className="mt-3 flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <MessageCircle className="w-3 h-3 text-gray-400" />
+          {comments.length > 0 && (
+            <Badge variant="secondary" className="h-4 px-1 text-xs">
+              {comments.length}
+            </Badge>
+          )}
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              data-testid={`button-add-comment-${date}`}
+            >
+              <Plus className="w-3 h-3" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Comments for {format(new Date(date), "MMM d, yyyy")}</DialogTitle>
+            </DialogHeader>
+            <CommentsDisplay inDialog={true} />
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // Inline variant - full comments section (original behavior)
+  return <CommentsDisplay />;
 }

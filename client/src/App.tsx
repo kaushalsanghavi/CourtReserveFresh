@@ -6,11 +6,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SelectedMemberProvider } from "@/components/QuickBooking";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import CommentsDemo from "@/pages/comments-demo";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/comments-demo" component={CommentsDemo} />
       <Route component={NotFound} />
     </Switch>
   );
