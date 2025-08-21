@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import type { Member, Booking } from "@shared/schema";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend } from "date-fns";
 
@@ -17,9 +19,14 @@ const avatarColors = {
   cyan: "bg-cyan-100 text-cyan-700",
 };
 
+type SortField = 'name' | 'participationRate' | 'totalBookings';
+type SortDirection = 'asc' | 'desc';
+
 export default function MonthlyParticipation() {
   const [selectedMonth, setSelectedMonth] = useState<string>("8"); // August
   const [selectedYear, setSelectedYear] = useState<string>("2025");
+  const [sortField, setSortField] = useState<SortField>('participationRate');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const { data: members = [] } = useQuery<Member[]>({
     queryKey: ["/api/members"],
@@ -39,7 +46,7 @@ export default function MonthlyParticipation() {
     const weekdaysInMonth = daysInMonth.filter(day => !isWeekend(day));
     const totalWeekdays = weekdaysInMonth.length;
     
-    return members.map(member => {
+    const stats = members.map(member => {
       const memberBookings = allBookings.filter(booking => {
         const bookingDate = new Date(booking.date);
         return booking.memberId === member.id && 
@@ -58,7 +65,44 @@ export default function MonthlyParticipation() {
         status,
       };
     });
-  }, [members, allBookings, selectedMonth, selectedYear]);
+
+    // Sort the stats based on current sort criteria
+    return stats.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortField) {
+        case 'name':
+          aValue = a.member.name.toLowerCase();
+          bValue = b.member.name.toLowerCase();
+          break;
+        case 'participationRate':
+          aValue = a.participationRate;
+          bValue = b.participationRate;
+          break;
+        case 'totalBookings':
+          aValue = a.totalBookings;
+          bValue = b.totalBookings;
+          break;
+        default:
+          return 0;
+      }
+
+      if (sortDirection === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+  }, [members, allBookings, selectedMonth, selectedYear, sortField, sortDirection]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
 
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -103,18 +147,49 @@ export default function MonthlyParticipation() {
         <table className="w-full" data-testid="participation-table">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                MEMBER
+              <th className="text-left py-3 px-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 font-medium text-gray-700 hover:text-gray-900 text-xs uppercase tracking-wide"
+                  onClick={() => handleSort('name')}
+                  data-testid="sort-name"
+                >
+                  Member
+                  {sortField === 'name' && (
+                    sortDirection === 'asc' ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />
+                  )}
+                </Button>
               </th>
-              <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                TOTAL BOOKINGS
+              <th className="text-right py-3 px-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 font-medium text-gray-700 hover:text-gray-900 text-xs uppercase tracking-wide"
+                  onClick={() => handleSort('totalBookings')}
+                  data-testid="sort-bookings"
+                >
+                  Total Bookings
+                  {sortField === 'totalBookings' && (
+                    sortDirection === 'asc' ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />
+                  )}
+                </Button>
               </th>
-              <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                PARTICIPATION RATE
+              <th className="text-right py-3 px-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 font-medium text-gray-700 hover:text-gray-900 text-xs uppercase tracking-wide"
+                  onClick={() => handleSort('participationRate')}
+                  data-testid="sort-rate"
+                >
+                  Participation Rate
+                  {sortField === 'participationRate' && (
+                    sortDirection === 'asc' ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />
+                  )}
+                </Button>
               </th>
-              <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                STATUS
-              </th>
+              <th className="text-center py-3 px-1 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

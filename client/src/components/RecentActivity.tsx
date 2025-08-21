@@ -7,18 +7,21 @@ export default function RecentActivity() {
     queryKey: ["/api/activities"],
   });
 
+  // Show only the last 10 activities
+  const recentActivities = activities.slice(0, 10);
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" data-testid="recent-activity">
       <h2 className="text-lg font-medium text-gray-900 mb-2">Recent Activity</h2>
-      <p className="text-sm text-gray-600 mb-6">Latest bookings and cancellations</p>
+      <p className="text-sm text-gray-600 mb-6">Latest 10 bookings and cancellations</p>
       
-      <div className="space-y-4">
-        {activities.length === 0 ? (
+      <div className="max-h-80 overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+        {recentActivities.length === 0 ? (
           <p className="text-sm text-gray-400 italic" data-testid="no-activities">
             No activities yet
           </p>
         ) : (
-          activities.map((activity) => (
+          recentActivities.map((activity) => (
             <div key={activity.id} className="flex items-start space-x-3" data-testid={`activity-${activity.id}`}>
               <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
               <div className="flex-1 min-w-0">
