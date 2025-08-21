@@ -142,7 +142,6 @@ export default function MonthlyParticipation() {
           </Select>
         </div>
       </div>
-
       <div className="overflow-x-auto">
         <table className="w-full" data-testid="participation-table">
           <thead>
@@ -168,9 +167,7 @@ export default function MonthlyParticipation() {
                   className="h-auto p-0 font-medium text-gray-700 hover:text-gray-900 text-xs uppercase tracking-wide"
                   onClick={() => handleSort('totalBookings')}
                   data-testid="sort-bookings"
-                >
-                  Total Bookings
-                  {sortField === 'totalBookings' && (
+                >Bookings{sortField === 'totalBookings' && (
                     sortDirection === 'asc' ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />
                   )}
                 </Button>
