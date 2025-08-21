@@ -161,7 +161,7 @@ export default function MonthlyParticipation() {
                   )}
                 </Button>
               </th>
-              <th className="text-right py-3 px-1">
+              <th className="text-center py-3 px-1">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -175,7 +175,7 @@ export default function MonthlyParticipation() {
                   )}
                 </Button>
               </th>
-              <th className="text-right py-3 px-1">
+              <th className="text-left py-3 px-1">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -195,7 +195,7 @@ export default function MonthlyParticipation() {
           <tbody className="divide-y divide-gray-100">
             {memberStats.map((stat) => (
               <tr key={stat.member.id} data-testid={`member-row-${stat.member.id}`}>
-                <td className="py-4 px-4">
+                <td className="py-4 px-1">
                   <div className="flex items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
                       avatarColors[stat.member.avatarColor as keyof typeof avatarColors] || "bg-gray-100 text-gray-700"
@@ -209,12 +209,12 @@ export default function MonthlyParticipation() {
                     </span>
                   </div>
                 </td>
-                <td className="py-4 px-4">
+                <td className="py-4 px-1 text-center">
                   <span className="text-sm text-gray-900" data-testid={`total-bookings-${stat.member.id}`}>
                     {stat.totalBookings}
                   </span>
                 </td>
-                <td className="py-4 px-4">
+                <td className="py-4 px-1">
                   <div className="flex items-center">
                     <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
                       <div 
@@ -228,7 +228,7 @@ export default function MonthlyParticipation() {
                     </span>
                   </div>
                 </td>
-                <td className="py-4 px-4">
+                <td className="py-4 px-1 text-center">
                   <span 
                     className={`px-2 py-1 text-xs font-medium rounded ${
                       stat.status === "High" 
