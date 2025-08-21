@@ -22,6 +22,10 @@ Preferred communication style: Simple, everyday language.
   - **Modal Variant**: Comment count with separate "View" button for clearer affordances
   - **Inline Variant**: Full comments section embedded in cards (makes cards taller)
 - ✅ **Added Design Demo Page** at `/comments-demo` to showcase different visual approaches
+- ✅ **Implemented Time-Based Booking Restrictions**:
+  - **Past Days**: Disabled/grayed out but viewable for comments and booking history
+  - **Today After 9:30 AM**: Becomes unbookable to prevent last-minute bookings
+  - **Visual Indicators**: Disabled days have gray styling and different status labels
 - ⚠️ **Storage Migration History**: App previously used in-memory → file-based → ReplDB storage
 - ✅ **Production Ready**: ReplDB ensures data persists across restarts and deployments
 

@@ -5,7 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useSelectedMember } from "./QuickBooking";
 import Comments from "./Comments";
 import type { Member, Booking, Comment } from "@shared/schema";
-import { format, addDays, startOfWeek, isWeekend, isSameDay } from "date-fns";
+import { format, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, setHours, setMinutes } from "date-fns";
 
 interface DayCardProps {
   date: Date;
@@ -23,6 +23,13 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
   const dayBookings = bookings.filter(b => b.date === dateStr);
   const isToday = isSameDay(date, new Date());
   const isWeekendDay = isWeekend(date);
+
+  // Check if date is in the past or today after 9:30 AM
+  const now = new Date();
+  const cutoffTime = setMinutes(setHours(new Date(), 9), 30); // 9:30 AM today
+  const isPastDate = isBefore(startOfDay(date), startOfDay(now));
+  const isTodayAfterCutoff = isToday && now >= cutoffTime;
+  const isBookingDisabled = isPastDate || isTodayAfterCutoff;
 
   // Check if selected member has a booking for this date
   const memberBooking = dayBookings.find(b => b.memberId === selectedMemberId);
@@ -42,11 +49,15 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
     if (isBooking || isCancelling) {
       return hasSelectedMemberBooking ? "Cancelling..." : "Booking...";
     }
+    if (isBookingDisabled && !hasSelectedMemberBooking) {
+      if (isPastDate) return "Past Date";
+      if (isTodayAfterCutoff) return "Booking Closed";
+    }
     if (dayBookings.length >= 6 && !hasSelectedMemberBooking) {
       return "Fully Booked";
     }
     if (hasSelectedMemberBooking) {
-      return "Cancel Booking";
+      return isBookingDisabled ? "Booked (Past)" : "Cancel Booking";
     }
     return "Book Slot";
   };
@@ -55,25 +66,41 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
     if (!selectedMemberId) return true;
     if (isBooking || isCancelling) return true;
     if (dayBookings.length >= 6 && !hasSelectedMemberBooking) return true;
+    // Disable booking for past dates or today after 9:30 AM (but allow cancellation)
+    if (isBookingDisabled && !hasSelectedMemberBooking) return true;
+    // Allow cancellation even for past bookings, but disable new bookings
+    if (isBookingDisabled && hasSelectedMemberBooking) return true;
     return false;
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4" data-testid={`day-card-${dateStr}`}>
+    <div className={`border rounded-lg p-4 ${
+      isBookingDisabled 
+        ? "border-gray-300 bg-gray-50" 
+        : "border-gray-200 bg-white"
+    }`} data-testid={`day-card-${dateStr}`}>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h4 className="font-medium text-gray-900" data-testid={`date-${dateStr}`}>
+          <h4 className={`font-medium ${
+            isBookingDisabled ? "text-gray-500" : "text-gray-900"
+          }`} data-testid={`date-${dateStr}`}>
             {format(date, "EEE, MMM d")}
           </h4>
           <p className="text-sm text-gray-500" data-testid={`day-label-${dateStr}`}>
-            {isToday ? "Today" : format(date, "EEEE")}
+            {isToday ? (isTodayAfterCutoff ? "Today (Closed)" : "Today") : 
+             isPastDate ? "Past" : 
+             format(date, "EEEE")}
           </p>
         </div>
         <div className="flex items-center">
-          <span className="text-sm font-medium text-gray-600" data-testid={`slot-count-${dateStr}`}>
+          <span className={`text-sm font-medium ${
+            isBookingDisabled ? "text-gray-500" : "text-gray-600"
+          }`} data-testid={`slot-count-${dateStr}`}>
             {dayBookings.length}/6
           </span>
-          <div className="w-2 h-2 bg-green-500 rounded-full ml-2"></div>
+          <div className={`w-2 h-2 rounded-full ml-2 ${
+            isBookingDisabled ? "bg-gray-400" : "bg-green-500"
+          }`}></div>
         </div>
       </div>
       
@@ -101,9 +128,11 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
       
       <Button 
         className={`w-full font-medium ${
-          hasSelectedMemberBooking
-            ? "bg-red-100 text-red-700 hover:bg-red-200"
-            : "bg-green-100 text-green-700 hover:bg-green-200"
+          isButtonDisabled() 
+            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+            : hasSelectedMemberBooking
+              ? "bg-red-100 text-red-700 hover:bg-red-200"
+              : "bg-green-100 text-green-700 hover:bg-green-200"
         }`}
         onClick={handleButtonClick}
         disabled={isButtonDisabled()}
