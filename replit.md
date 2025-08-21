@@ -16,6 +16,12 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Enhanced device tracking** to capture exact device model, OS version, and browser information
 - ✅ **Improved UI** to show selected member and highlight their bookings in green
 - ✅ **Data persistence verified** - bookings survive deployment restarts using ReplDB
+- ✅ **Implemented Comments Feature** with full CRUD operations and persistent storage
+- ✅ **Created Multiple Comment Variants** to reduce visual clutter:
+  - **Compact Variant (Default)**: Clickable comment icon with count - minimal footprint
+  - **Modal Variant**: Comment count with separate "View" button for clearer affordances
+  - **Inline Variant**: Full comments section embedded in cards (makes cards taller)
+- ✅ **Added Design Demo Page** at `/comments-demo` to showcase different visual approaches
 - ⚠️ **Storage Migration History**: App previously used in-memory → file-based → ReplDB storage
 - ✅ **Production Ready**: ReplDB ensures data persists across restarts and deployments
 

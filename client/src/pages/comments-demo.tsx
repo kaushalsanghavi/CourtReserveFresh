@@ -21,7 +21,7 @@ export default function CommentsDemo() {
           <CardHeader>
             <CardTitle className="text-xl text-green-700">Compact Variant (Recommended)</CardTitle>
             <p className="text-sm text-gray-600">
-              Minimal visual footprint with comment count badge and plus button. Comments open in a modal.
+              Minimal visual footprint - just a clickable comment icon with count. Click to open comments modal.
             </p>
           </CardHeader>
           <CardContent>
@@ -59,7 +59,7 @@ export default function CommentsDemo() {
           <CardHeader>
             <CardTitle className="text-xl text-blue-700">Modal Variant</CardTitle>
             <p className="text-sm text-gray-600">
-              Shows comment count with a "View" button. All comment interactions happen in a modal dialog.
+              Shows comment count text with separate "View" button. More explicit but takes slightly more space.
             </p>
           </CardHeader>
           <CardContent>
@@ -139,15 +139,15 @@ export default function CommentsDemo() {
             <ul className="space-y-2">
               <li className="flex items-start gap-2">
                 <span className="font-medium">✓ Compact:</span>
-                <span>Best for keeping cards clean while showing comment activity at a glance</span>
+                <span>Cleanest design - just a clickable icon with comment count. Best for minimal clutter.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-medium">✓ Modal:</span>
-                <span>Good compromise between visibility and cleanliness</span>
+                <span>More explicit with separate "View" button. Better for users who need clearer affordances.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="font-medium">⚠ Inline:</span>
-                <span>Makes cards very tall, harder to scan the calendar quickly</span>
+                <span>Shows all comments directly in cards. Makes cards very tall and harder to scan.</span>
               </li>
             </ul>
           </CardContent>

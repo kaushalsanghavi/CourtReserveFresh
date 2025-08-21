@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -137,6 +137,9 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Comments for {format(new Date(date), "MMM d, yyyy")}</DialogTitle>
+              <DialogDescription>
+                View and add comments for coordination on this date
+              </DialogDescription>
             </DialogHeader>
             <CommentsDisplay inDialog={true} />
           </DialogContent>
@@ -145,32 +148,30 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
     );
   }
 
-  // Compact variant - shows just a comment indicator with count
+  // Compact variant - shows just a comment indicator with count, clickable bubble
   if (variant === 'compact') {
     return (
-      <div className="mt-3 flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <MessageCircle className="w-3 h-3 text-gray-400" />
-          {comments.length > 0 && (
-            <Badge variant="secondary" className="h-4 px-1 text-xs">
-              {comments.length}
-            </Badge>
-          )}
-        </div>
+      <div className="mt-3 flex items-center justify-end">
         <Dialog>
           <DialogTrigger asChild>
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0"
-              data-testid={`button-add-comment-${date}`}
+              className="h-6 px-2 text-xs flex items-center gap-1 hover:bg-gray-100"
+              data-testid={`button-comments-${date}`}
             >
-              <Plus className="w-3 h-3" />
+              <MessageCircle className="w-3 h-3 text-gray-400" />
+              {comments.length > 0 && (
+                <span className="text-xs text-gray-600">{comments.length}</span>
+              )}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Comments for {format(new Date(date), "MMM d, yyyy")}</DialogTitle>
+              <DialogDescription>
+                View and add comments for coordination on this date
+              </DialogDescription>
             </DialogHeader>
             <CommentsDisplay inDialog={true} />
           </DialogContent>
