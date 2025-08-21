@@ -26,8 +26,11 @@ Preferred communication style: Simple, everyday language.
   - **Past Days**: Disabled/grayed out but viewable for comments and booking history
   - **Today After 9:30 AM**: Becomes unbookable to prevent last-minute bookings
   - **Visual Indicators**: Disabled days have gray styling and different status labels
+- ✅ **Production Deployment Ready**:
+  - **Environment-Based Feature Toggling**: Demo routes/links automatically hidden in production
+  - **Clean Production Interface**: No development tools visible to end users
+  - **Persistent Data Storage**: ReplDB ensures data survives restarts and deployments
 - ⚠️ **Storage Migration History**: App previously used in-memory → file-based → ReplDB storage
-- ✅ **Production Ready**: ReplDB ensures data persists across restarts and deployments
 
 ## System Architecture
 

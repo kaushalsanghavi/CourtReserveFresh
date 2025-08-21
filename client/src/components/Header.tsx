@@ -4,6 +4,9 @@ import { Link, useLocation } from "wouter";
 function HeaderNavigation() {
   const [location] = useLocation();
   
+  // Hide demo link in production deployments
+  const isProduction = import.meta.env.PROD || import.meta.env.VITE_REPLIT_DEPLOYMENT;
+  
   return (
     <div className="flex items-center gap-4 border-l border-gray-300 pl-6">
       {location !== "/" && (
@@ -11,7 +14,7 @@ function HeaderNavigation() {
           ← Calendar
         </Link>
       )}
-      {location !== "/comments-demo" && (
+      {!isProduction && location !== "/comments-demo" && (
         <Link href="/comments-demo" className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
           <Palette className="w-4 h-4" />
           Design Options

@@ -9,10 +9,13 @@ import Home from "@/pages/home";
 import CommentsDemo from "@/pages/comments-demo";
 
 function Router() {
+  // Hide demo route in production deployments
+  const isProduction = import.meta.env.PROD || import.meta.env.VITE_REPLIT_DEPLOYMENT;
+  
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/comments-demo" component={CommentsDemo} />
+      {!isProduction && <Route path="/comments-demo" component={CommentsDemo} />}
       <Route component={NotFound} />
     </Switch>
   );
