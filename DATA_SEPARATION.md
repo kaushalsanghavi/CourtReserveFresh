@@ -2,23 +2,26 @@
 
 ## Overview
 
-The badminton booking system now uses environment-based data separation to keep development and production data completely isolated. This prevents development testing from affecting production data and ensures production data is preserved across deployments.
+The badminton booking system uses intelligent environment-based data separation to keep development and production data completely isolated while supporting multiple developers working simultaneously.
 
 ## How It Works
 
 ### Environment Detection
 
-The system automatically detects the environment using these indicators:
+The system automatically detects the environment and assigns appropriate namespaces:
 
-- **Development**: `NODE_ENV=development` and no `REPLIT_DEPLOYMENT` environment variable
 - **Production**: `REPLIT_DEPLOYMENT` exists OR `NODE_ENV=production`
+- **Development**: `NODE_ENV=development` and no `REPLIT_DEPLOYMENT`
+  - **Individual Developer**: Uses `REPL_OWNER` or `REPL_SLUG` for personal namespace
+  - **Shared Development**: Falls back to shared namespace if no user identifier available
 
 ### Database Key Prefixing
 
-All database operations use environment-specific prefixes:
+All database operations use environment and user-specific prefixes:
 
-- **Development**: `dev_members`, `dev_bookings`, `dev_activities`, `dev_comments`
 - **Production**: `prod_members`, `prod_bookings`, `prod_activities`, `prod_comments`
+- **Development (Individual)**: `dev_username_members`, `dev_username_bookings`, etc.
+- **Development (Shared)**: `dev_shared_members`, `dev_shared_bookings`, etc.
 
 ## Benefits
 
@@ -62,10 +65,25 @@ This confirms which environment is active and the reasoning behind the detection
 ## For Developers
 
 When working in development:
-1. You get a fresh set of test members automatically
-2. All your test bookings/comments use the `dev_` namespace
-3. Production data remains completely untouched
-4. Deploy with confidence knowing production data is safe
+1. **Personal Development Space**: Each developer gets their own isolated data namespace
+2. **No Conflicts**: Multiple developers can work simultaneously without data conflicts
+3. **Fresh Test Data**: Each developer gets their own set of test members automatically
+4. **Production Safety**: Production data remains completely untouched
+5. **Easy Collaboration**: Share the same codebase while maintaining separate development data
+
+## Collaboration Benefits
+
+### Multiple Developers
+- **Individual Namespaces**: `dev_alice_`, `dev_bob_`, `dev_charlie_` 
+- **Isolated Testing**: Each developer's test data is completely separate
+- **No Interference**: Booking tests by one developer don't affect others
+- **Personal Experiments**: Safe to test destructive operations in your own namespace
+
+### Team Scenarios
+- **Parallel Development**: Multiple features can be developed simultaneously
+- **Independent Testing**: UI changes, booking logic, comment features tested separately
+- **Shared Codebase**: Same application code, different data environments
+- **Clean Handoffs**: Fresh development environment for each team member
 
 ## For Production Deployments
 

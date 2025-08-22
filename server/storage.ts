@@ -5,21 +5,31 @@ import Database from "@replit/database";
 
 const db = new Database();
 
-// Environment-based key prefixing for data separation
+// Enhanced environment-based key prefixing for data separation and collaboration
 const getEnvironment = () => {
   const nodeEnv = process.env.NODE_ENV;
   const replitDeployment = process.env.REPLIT_DEPLOYMENT;
+  const replUser = process.env.REPL_OWNER || process.env.REPL_SLUG;
   
   // Check if running in production (deployed on Replit)
   if (replitDeployment || nodeEnv === 'production') {
     return 'prod';
   }
   
-  return 'dev';
+  // For development, include user identifier to separate developer data
+  if (replUser) {
+    return `dev_${replUser}`;
+  }
+  
+  return 'dev_shared';
 };
 
 const ENV_PREFIX = getEnvironment();
-console.log(`🗄️  Database Environment: ${ENV_PREFIX} (NODE_ENV: ${process.env.NODE_ENV}, REPLIT_DEPLOYMENT: ${process.env.REPLIT_DEPLOYMENT})`);
+console.log(`🗄️  Database Environment: ${ENV_PREFIX}`);
+console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`   REPLIT_DEPLOYMENT: ${process.env.REPLIT_DEPLOYMENT}`);
+console.log(`   REPL_OWNER: ${process.env.REPL_OWNER}`);
+console.log(`   REPL_SLUG: ${process.env.REPL_SLUG}`);
 
 // Helper function to create environment-specific keys
 const getKey = (baseKey: string) => `${ENV_PREFIX}_${baseKey}`;
