@@ -8,29 +8,29 @@ A full-stack badminton court booking application built with modern web technolog
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Aug 20, 2025)
+## Recent Changes (Aug 22, 2025)
 
-- ✅ **Successfully migrated to ReplDB storage** for deployment persistence (replacing file-based storage)
-- ✅ **Fixed member selection context** - booking buttons now work correctly after selecting a member
-- ✅ **Resolved booking functionality** - users can now book and cancel slots successfully
-- ✅ **Enhanced device tracking** to capture exact device model, OS version, and browser information
-- ✅ **Improved UI** to show selected member and highlight their bookings in green
-- ✅ **Data persistence verified** - bookings survive deployment restarts using ReplDB
-- ✅ **Implemented Comments Feature** with full CRUD operations and persistent storage
-- ✅ **Created Multiple Comment Variants** to reduce visual clutter:
-  - **Compact Variant (Default)**: Clickable comment icon with count - minimal footprint
-  - **Modal Variant**: Comment count with separate "View" button for clearer affordances
-  - **Inline Variant**: Full comments section embedded in cards (makes cards taller)
-- ✅ **Added Design Demo Page** at `/comments-demo` to showcase different visual approaches
-- ✅ **Implemented Time-Based Booking Restrictions**:
-  - **Past Days**: Disabled/grayed out but viewable for comments and booking history
-  - **Today After 9:30 AM**: Becomes unbookable to prevent last-minute bookings
-  - **Visual Indicators**: Disabled days have gray styling and different status labels
-- ✅ **Production Deployment Ready**:
-  - **Environment-Based Feature Toggling**: Demo routes/links automatically hidden in production
-  - **Clean Production Interface**: No development tools visible to end users
-  - **Persistent Data Storage**: ReplDB ensures data survives restarts and deployments
-- ⚠️ **Storage Migration History**: App previously used in-memory → file-based → ReplDB storage
+- ✅ **Fixed Critical Comment Input Bug**: Resolved focus loss issue that made typing comments extremely difficult
+  - **Root Cause**: Component re-renders were recreating DOM elements and breaking input focus
+  - **Solution**: Isolated comment forms with proper memoization and local state management
+  - **Impact**: Comment input now maintains focus properly on both mobile and desktop
+- ✅ **Implemented Environment-Based Data Separation**:
+  - **Development vs Production**: Separate database namespaces prevent data conflicts
+  - **Environment Detection**: Automatic detection using NODE_ENV and REPLIT_DEPLOYMENT
+  - **Data Isolation**: Dev testing no longer affects production data
+  - **Deployment Safety**: Production data preserved across new deployments
+- ✅ **Enhanced UI Improvements**:
+  - **Sortable Participation Table**: Click headers to sort by name, bookings, or participation rate
+  - **Scrollable Recent Activity**: Limited to last 10 items with clean scrolling interface
+  - **Fixed Column Alignment**: Monthly participation table headers properly aligned with data
+- ✅ **Production Deployment Ready**: All features verified working with proper data separation
+
+## Previous Changes (Aug 20, 2025)
+
+- ✅ **Successfully migrated to ReplDB storage** for deployment persistence
+- ✅ **Implemented Comments Feature** with full CRUD operations
+- ✅ **Time-Based Booking Restrictions** with visual indicators
+- ✅ **Environment-Based Feature Toggling** for clean production interface
 
 ## System Architecture
 
