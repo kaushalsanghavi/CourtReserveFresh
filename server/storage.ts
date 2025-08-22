@@ -5,35 +5,6 @@ import Database from "@replit/database";
 
 const db = new Database();
 
-// Enhanced environment-based key prefixing for data separation and collaboration
-const getEnvironment = () => {
-  const nodeEnv = process.env.NODE_ENV;
-  const replitDeployment = process.env.REPLIT_DEPLOYMENT;
-  const replUser = process.env.REPL_OWNER || process.env.REPL_SLUG;
-  
-  // Check if running in production (deployed on Replit)
-  if (replitDeployment || nodeEnv === 'production') {
-    return 'prod';
-  }
-  
-  // For development, include user identifier to separate developer data
-  if (replUser) {
-    return `dev_${replUser}`;
-  }
-  
-  return 'dev_shared';
-};
-
-const ENV_PREFIX = getEnvironment();
-console.log(`🗄️  Database Environment: ${ENV_PREFIX}`);
-console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
-console.log(`   REPLIT_DEPLOYMENT: ${process.env.REPLIT_DEPLOYMENT}`);
-console.log(`   REPL_OWNER: ${process.env.REPL_OWNER}`);
-console.log(`   REPL_SLUG: ${process.env.REPL_SLUG}`);
-
-// Helper function to create environment-specific keys
-const getKey = (baseKey: string) => `${ENV_PREFIX}_${baseKey}`;
-
 export interface IStorage {
   // Members
   getMembers(): Promise<Member[]>;
@@ -77,13 +48,13 @@ export class ReplDBStorage implements IStorage {
         { id: randomUUID(), name: "Anjali", initials: "AN", avatarColor: "teal", createdAt: new Date() },
         { id: randomUUID(), name: "Kumar", initials: "KU", avatarColor: "cyan", createdAt: new Date() },
       ];
-      await db.set(getKey("members"), defaultMembers);
+      await db.set("members", defaultMembers);
     }
   }
 
   async getMembers(): Promise<Member[]> {
     try {
-      const result = await db.get(getKey("members"));
+      const result = await db.get("members");
       console.log('Members result:', result);
       // Handle different possible return formats from ReplDB
       if (result === null || result === undefined) {
@@ -110,13 +81,13 @@ export class ReplDBStorage implements IStorage {
       createdAt: new Date(),
     };
     members.push(member);
-    await db.set(getKey("members"), members);
+    await db.set("members", members);
     return member;
   }
 
   async getBookings(): Promise<Booking[]> {
     try {
-      const result = await db.get(getKey("bookings"));
+      const result = await db.get("bookings");
       console.log('Bookings result:', result);
       if (result === null || result === undefined) {
         return [];
@@ -152,7 +123,7 @@ export class ReplDBStorage implements IStorage {
       createdAt: new Date(),
     };
     bookings.push(booking);
-    await db.set(getKey("bookings"), bookings);
+    await db.set("bookings", bookings);
     return booking;
   }
 
@@ -166,13 +137,13 @@ export class ReplDBStorage implements IStorage {
       return false; // No booking found to delete
     }
     
-    await db.set(getKey("bookings"), filteredBookings);
+    await db.set("bookings", filteredBookings);
     return true;
   }
 
   async getActivities(): Promise<Activity[]> {
     try {
-      const result = await db.get(getKey("activities"));
+      const result = await db.get("activities");
       console.log('Activities result:', result);
       let allActivities: Activity[] = [];
       if (result === null || result === undefined) {
@@ -197,14 +168,14 @@ export class ReplDBStorage implements IStorage {
       createdAt: new Date(),
     };
     activities.push(activity);
-    await db.set(getKey("activities"), activities);
+    await db.set("activities", activities);
     return activity;
   }
 
   // Comments
   async getComments(): Promise<Comment[]> {
     try {
-      const result = await db.get(getKey("comments"));
+      const result = await db.get("comments");
       console.log('Comments result:', result);
       
       if (result === null || result === undefined) {
@@ -238,7 +209,7 @@ export class ReplDBStorage implements IStorage {
       createdAt: new Date(),
     };
     comments.push(comment);
-    await db.set(getKey("comments"), comments);
+    await db.set("comments", comments);
     return comment;
   }
 }
