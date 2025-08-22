@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useRef, memo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +17,6 @@ interface CommentsProps {
 }
 
 export default function Comments({ date, variant = 'modal' }: CommentsProps) {
-  const [newComment, setNewComment] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { selectedMemberId, selectedMember } = useSelectedMember();
@@ -40,7 +39,6 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
       });
     },
     onSuccess: () => {
-      setNewComment("");
       queryClient.invalidateQueries({ queryKey: ["/api/comments", date] });
       queryClient.invalidateQueries({ queryKey: ["/api/comments"] });
       toast({
@@ -57,11 +55,67 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
     },
   });
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-    addCommentMutation.mutate(newComment.trim());
-  }, [newComment, addCommentMutation]);
+
+
+  // Create an isolated form component to prevent re-renders
+  const IsolatedCommentForm = memo(({ 
+    selectedMemberId, 
+    onSubmit, 
+    isPending, 
+    date 
+  }: {
+    selectedMemberId: string;
+    onSubmit: (comment: string) => void;
+    isPending: boolean;
+    date: string;
+  }) => {
+    const [localComment, setLocalComment] = useState("");
+
+    const handleLocalSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!localComment.trim()) return;
+      onSubmit(localComment.trim());
+      setLocalComment(""); // Clear after submit
+    };
+
+    if (!selectedMemberId) {
+      return <p className="text-sm text-gray-500 italic">Select a member to add comments</p>;
+    }
+
+    return (
+      <form onSubmit={handleLocalSubmit} className="space-y-2">
+        <Textarea
+          value={localComment}
+          onChange={(e) => setLocalComment(e.target.value)}
+          placeholder="Add a comment about this day..."
+          className="text-sm"
+          rows={2}
+          data-testid={`textarea-comment-${date}`}
+        />
+        <Button
+          type="submit"
+          size="sm"
+          disabled={!localComment.trim() || isPending}
+          className="bg-blue-100 text-blue-700 hover:bg-blue-200"
+          data-testid={`button-add-comment-${date}`}
+        >
+          {isPending ? "Adding..." : "Add Comment"}
+        </Button>
+      </form>
+    );
+  });
+
+  const handleCommentSubmit = useCallback((comment: string) => {
+    if (!selectedMemberId || !selectedMember) {
+      toast({
+        title: "Please select a member",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addCommentMutation.mutate(comment);
+  }, [selectedMemberId, selectedMember, addCommentMutation, toast]);
 
   // Memoize the comments display to prevent re-creation on every render
   const CommentsDisplay = useCallback(({ inDialog = false }: { inDialog?: boolean }) => {
@@ -89,34 +143,15 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
         )}
 
         {/* Add new comment */}
-        {selectedMemberId ? (
-          <form onSubmit={handleSubmit} className="space-y-2">
-            <Textarea
-              key={`textarea-${date}-${selectedMemberId}`} // Stable key to prevent re-creation
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment about this day..."
-              className="text-sm"
-              rows={2}
-              data-testid={`textarea-comment-${date}`}
-              autoFocus={false} // Prevent auto-focus on re-render
-            />
-            <Button
-              type="submit"
-              size="sm"
-              disabled={!newComment.trim() || addCommentMutation.isPending}
-              className="bg-blue-100 text-blue-700 hover:bg-blue-200"
-              data-testid={`button-add-comment-${date}`}
-            >
-              {addCommentMutation.isPending ? "Adding..." : "Add Comment"}
-            </Button>
-          </form>
-        ) : (
-          <p className="text-sm text-gray-500 italic">Select a member to add comments</p>
-        )}
+        <IsolatedCommentForm 
+          selectedMemberId={selectedMemberId}
+          onSubmit={handleCommentSubmit}
+          isPending={addCommentMutation.isPending}
+          date={date}
+        />
       </div>
     );
-  }, [comments, selectedMemberId, newComment, handleSubmit, date, addCommentMutation.isPending]);
+  }, [comments, selectedMemberId, handleCommentSubmit, addCommentMutation.isPending, date]);
 
   // Modal variant - opens comments in a dialog
   if (variant === 'modal') {
