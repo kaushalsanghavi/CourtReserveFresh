@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,61 +57,66 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
     addCommentMutation.mutate(newComment.trim());
-  };
+  }, [newComment, addCommentMutation]);
 
-  const CommentsDisplay = ({ inDialog = false }: { inDialog?: boolean }) => (
-    <div className={inDialog ? "" : "mt-4 pt-4 border-t border-gray-200"}>
-      {!inDialog && <h5 className="text-xs text-gray-500 uppercase tracking-wide mb-2">COMMENTS</h5>}
-      
-      {/* Existing comments */}
-      {comments.length > 0 ? (
-        <div className="space-y-2 mb-3" data-testid={`comments-list-${date}`}>
-          {comments.map((comment) => (
-            <div key={comment.id} className="bg-gray-50 rounded-md p-2" data-testid={`comment-${comment.id}`}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-gray-700">{comment.memberName}</span>
-                <span className="text-xs text-gray-500">
-                  {format(new Date(comment.createdAt), "MMM d, h:mm a")}
-                </span>
+  // Memoize the comments display to prevent re-creation on every render
+  const CommentsDisplay = useCallback(({ inDialog = false }: { inDialog?: boolean }) => {
+    return (
+      <div className={inDialog ? "" : "mt-4 pt-4 border-t border-gray-200"}>
+        {!inDialog && <h5 className="text-xs text-gray-500 uppercase tracking-wide mb-2">COMMENTS</h5>}
+        
+        {/* Existing comments */}
+        {comments.length > 0 ? (
+          <div className="space-y-2 mb-3" data-testid={`comments-list-${date}`}>
+            {comments.map((comment) => (
+              <div key={comment.id} className="bg-gray-50 rounded-md p-2" data-testid={`comment-${comment.id}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-gray-700">{comment.memberName}</span>
+                  <span className="text-xs text-gray-500">
+                    {format(new Date(comment.createdAt), "MMM d, h:mm a")}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-800">{comment.comment}</p>
               </div>
-              <p className="text-sm text-gray-800">{comment.comment}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-gray-400 italic mb-3">No comments yet</p>
-      )}
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 italic mb-3">No comments yet</p>
+        )}
 
-      {/* Add new comment */}
-      {selectedMemberId ? (
-        <form onSubmit={handleSubmit} className="space-y-2">
-          <Textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a comment about this day..."
-            className="text-sm"
-            rows={2}
-            data-testid={`textarea-comment-${date}`}
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={!newComment.trim() || addCommentMutation.isPending}
-            className="bg-blue-100 text-blue-700 hover:bg-blue-200"
-            data-testid={`button-add-comment-${date}`}
-          >
-            {addCommentMutation.isPending ? "Adding..." : "Add Comment"}
-          </Button>
-        </form>
-      ) : (
-        <p className="text-sm text-gray-500 italic">Select a member to add comments</p>
-      )}
-    </div>
-  );
+        {/* Add new comment */}
+        {selectedMemberId ? (
+          <form onSubmit={handleSubmit} className="space-y-2">
+            <Textarea
+              key={`textarea-${date}-${selectedMemberId}`} // Stable key to prevent re-creation
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Add a comment about this day..."
+              className="text-sm"
+              rows={2}
+              data-testid={`textarea-comment-${date}`}
+              autoFocus={false} // Prevent auto-focus on re-render
+            />
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!newComment.trim() || addCommentMutation.isPending}
+              className="bg-blue-100 text-blue-700 hover:bg-blue-200"
+              data-testid={`button-add-comment-${date}`}
+            >
+              {addCommentMutation.isPending ? "Adding..." : "Add Comment"}
+            </Button>
+          </form>
+        ) : (
+          <p className="text-sm text-gray-500 italic">Select a member to add comments</p>
+        )}
+      </div>
+    );
+  }, [comments, selectedMemberId, newComment, handleSubmit, date, addCommentMutation.isPending]);
 
   // Modal variant - opens comments in a dialog
   if (variant === 'modal') {
