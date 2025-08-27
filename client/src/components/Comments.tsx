@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,8 +41,11 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
     },
     onSuccess: () => {
       setNewComment("");
-      queryClient.invalidateQueries({ queryKey: ["/api/comments", date] });
-      queryClient.invalidateQueries({ queryKey: ["/api/comments"] });
+      // Use a more stable query invalidation approach
+      requestAnimationFrame(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/comments", date] });
+        queryClient.invalidateQueries({ queryKey: ["/api/comments"] });
+      });
       toast({
         title: "Comment added",
         description: "Your comment has been posted successfully",
@@ -57,11 +60,15 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
     addCommentMutation.mutate(newComment.trim());
-  };
+  }, [newComment, addCommentMutation]);
+
+  const handleTextareaChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewComment(e.target.value);
+  }, []);
 
   const CommentsDisplay = ({ inDialog = false }: { inDialog?: boolean }) => (
     <div className={inDialog ? "" : "mt-4 pt-4 border-t border-gray-200"}>
@@ -91,7 +98,7 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
         <form onSubmit={handleSubmit} className="space-y-2">
           <Textarea
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            onChange={handleTextareaChange}
             placeholder="Add a comment about this day..."
             className="text-sm"
             rows={2}
