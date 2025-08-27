@@ -1,6 +1,6 @@
-import { db } from "./db";
+import { db, getCurrentSchema } from "./db";
 import { members, bookings, activities, comments } from "@shared/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import type { 
   Member, 
   InsertMember, 
@@ -139,9 +139,18 @@ export class DatabaseStorage implements IStorage {
 
   async getMembers(): Promise<Member[]> {
     try {
-      const result = await db.select().from(members);
-      console.log('Members result:', { ok: true, value: result });
-      return result;
+      const result = await db.execute(
+        sql.raw(`SELECT id, name, initials, avatar_color, created_at FROM ${getCurrentSchema()}.members ORDER BY created_at`)
+      );
+      const members = result.rows.map(row => ({
+        id: row.id as string,
+        name: row.name as string,
+        initials: row.initials as string,
+        avatarColor: row.avatar_color as string,
+        createdAt: new Date(row.created_at as string)
+      }));
+      console.log('Members result:', { ok: true, value: members });
+      return members;
     } catch (error) {
       console.error('Error getting members:', error);
       return [];
@@ -155,7 +164,17 @@ export class DatabaseStorage implements IStorage {
 
   async getBookings(): Promise<Booking[]> {
     try {
-      return await db.select().from(bookings).orderBy(desc(bookings.createdAt));
+      const result = await db.execute(
+        sql.raw(`SELECT id, member_id, member_name, date, created_at FROM ${getCurrentSchema()}.bookings ORDER BY created_at DESC`)
+      );
+      const bookings = result.rows.map(row => ({
+        id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
+        date: row.date as string,
+        createdAt: new Date(row.created_at as string)
+      }));
+      return bookings;
     } catch (error) {
       console.error('Error getting bookings:', error);
       return [];
@@ -198,9 +217,20 @@ export class DatabaseStorage implements IStorage {
 
   async getActivities(): Promise<Activity[]> {
     try {
-      const result = await db.select().from(activities).orderBy(desc(activities.createdAt));
-      console.log('Activities result:', { ok: true, value: result });
-      return result;
+      const result = await db.execute(
+        sql.raw(`SELECT id, member_id, member_name, action, date, device_info, created_at FROM ${getCurrentSchema()}.activities ORDER BY created_at DESC`)
+      );
+      const activities = result.rows.map(row => ({
+        id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
+        action: row.action as string,
+        date: row.date as string,
+        deviceInfo: row.device_info as string,
+        createdAt: new Date(row.created_at as string)
+      }));
+      console.log('Activities result:', { ok: true, value: activities });
+      return activities;
     } catch (error) {
       console.error('Error getting activities:', error);
       return [];
@@ -223,7 +253,16 @@ export class DatabaseStorage implements IStorage {
 
   async getCommentsByDate(date: string): Promise<Comment[]> {
     try {
-      return await db.select().from(comments).where(eq(comments.date, date));
+      const result = await db.execute(
+        sql.raw(`SELECT id, date, comment, created_at FROM ${getCurrentSchema()}.comments WHERE date = '${date}' ORDER BY created_at DESC`)
+      );
+      const comments = result.rows.map(row => ({
+        id: row.id as string,
+        date: row.date as string,
+        comment: row.comment as string,
+        createdAt: new Date(row.created_at as string)
+      }));
+      return comments;
     } catch (error) {
       console.error('Error getting comments by date:', error);
       return [];

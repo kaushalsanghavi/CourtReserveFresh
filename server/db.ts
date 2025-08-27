@@ -5,34 +5,32 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// Environment-aware database connection
-function getDatabaseUrl(): string {
+// Environment-aware database connection with schema separation
+function getDatabaseConfig() {
   const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT;
   
-  // Check for production-specific database URL
-  if (isProduction && process.env.PROD_DATABASE_URL) {
-    console.log('🏭 Using production database:', process.env.PROD_DATABASE_URL.substring(0, 30) + '...');
-    return process.env.PROD_DATABASE_URL;
-  }
-  
-  // Check for development-specific database URL
-  if (!isProduction && process.env.DEV_DATABASE_URL) {
-    console.log('🛠️  Using development database:', process.env.DEV_DATABASE_URL.substring(0, 30) + '...');
-    return process.env.DEV_DATABASE_URL;
-  }
-  
-  // Fallback to default DATABASE_URL (current behavior)
   if (!process.env.DATABASE_URL) {
     throw new Error(
       "DATABASE_URL must be set. Did you forget to provision a database?",
     );
   }
   
-  console.log(`🗄️  Using ${isProduction ? 'production' : 'development'} database (shared):`, 
+  const schema = isProduction ? 'production' : 'development';
+  console.log(`🗄️  Using ${schema} schema on database:`, 
     process.env.DATABASE_URL.substring(0, 30) + '...');
-  return process.env.DATABASE_URL;
+  
+  return {
+    connectionString: process.env.DATABASE_URL,
+    schema: schema
+  };
 }
 
-const databaseUrl = getDatabaseUrl();
-export const pool = new Pool({ connectionString: databaseUrl });
+const config = getDatabaseConfig();
+export const pool = new Pool({ connectionString: config.connectionString });
 export const db = drizzle({ client: pool, schema });
+
+// Dynamic schema detection for use in queries
+export function getCurrentSchema(): string {
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT;
+  return isProduction ? 'production' : 'development';
+}
