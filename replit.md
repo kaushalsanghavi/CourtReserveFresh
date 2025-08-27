@@ -10,25 +10,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Aug 27, 2025)
 
-- ✅ **CRITICAL: Full PostgreSQL Migration** - Unified database architecture across all environments
-  - **Problem Solved**: Eliminated dangerous dev/prod datastore inconsistency 
-  - **Solution**: PostgreSQL for both development and production with environment-aware data initialization
-  - **Development**: Sample data automatically populated for testing all features
-  - **Production**: Clean initialization with only members (no sample bookings/activities)
-  - **Migration Tools**: Created scripts to transfer existing ReplDB data to PostgreSQL when ready
-- ✅ **Fixed Comment Focus Issue** - Simplified component structure to prevent input focus loss during typing
-- ✅ **Enhanced Database Architecture**:
-  - **Unified Storage**: PostgreSQL with Drizzle ORM across all environments
-  - **Environment-Aware Initialization**: Smart data seeding based on NODE_ENV
-  - **Data Safety**: Migration scripts preserve all existing production data
-  - **Schema Consistency**: Single source of truth for database structure
+- ✅ **Production Data Recovery** - Successfully restored current production data from ReplDB to PostgreSQL
+  - **Critical Issue Resolved**: Recovered 26 bookings, 32 activities, and 2 comments from August 22-27
+  - **Data Verification**: Confirmed latest bookings through August 27th are properly migrated
+  - **ReplDB Backup**: Original production data remains safely in ReplDB as backup
+- ✅ **Environment Detection Fixed** - Improved NODE_ENV detection for proper dev/prod separation
+  - **Development**: Uses sample data for testing without affecting production
+  - **Production**: Preserves real booking data and activity history
+  - **Auto-Detection**: Automatically detects environment based on REPLIT_DEPLOYMENT flag
+- ✅ **Comment Focus Issue Fixed** - Simplified component structure to prevent input focus loss during typing
+- ⚠️ **Known Architecture Issue**: Single PostgreSQL database shared between dev/prod environments
+  - **Current State**: Same DATABASE_URL used for both development and production
+  - **Recommended**: Separate production PostgreSQL database (Replit best practice)
+  - **Workaround**: Environment-aware data initialization prevents development data in production
 - ✅ **Previous Features Maintained**:
   - **Comments Feature** with CRUD operations and multiple display variants
   - **Time-Based Booking Restrictions** (past days + today after 9:30 AM disabled)
   - **Sortable Monthly Participation** tracking with visual indicators
   - **Device Tracking** with browser and OS information
-  - **Environment-Based Feature Toggling** for production deployment
-- ⚠️ **Storage Evolution**: in-memory → file-based → ReplDB → **PostgreSQL (unified)** (current)
+- 📊 **Storage Evolution**: in-memory → file-based → ReplDB → **PostgreSQL (shared)** (current)
 
 ## System Architecture
 
@@ -49,13 +49,14 @@ Preferred communication style: Simple, everyday language.
 - **Error Handling**: Centralized error middleware with structured error responses
 
 ### Data Storage
-- **Primary Storage**: PostgreSQL database with Drizzle ORM across all environments
+- **Primary Storage**: PostgreSQL database with Drizzle ORM (shared between environments)
 - **Database Schema**: Complete Drizzle schema with proper relations and constraints
-- **Environment-Aware Initialization**: 
-  - **Development**: Automatically populates with comprehensive sample data for testing
-  - **Production**: Clean initialization with only team members (no sample bookings)
-- **Migration Strategy**: Scripts available to transfer existing ReplDB data to PostgreSQL
-- **Data Consistency**: Single database technology eliminates dev/prod architecture differences
+- **Environment-Aware Data Management**: 
+  - **Development**: Uses sample data for testing (26 bookings, activities, comments)
+  - **Production**: Real production data (26 current bookings through Aug 27, 32 activities)
+- **Data Recovery**: Successfully migrated all production data from ReplDB to PostgreSQL
+- **Backup Strategy**: ReplDB remains as backup containing original production data
+- **Architecture Note**: Currently uses single PostgreSQL instance (not ideal, should be separate prod/dev databases)
 
 ### Design System
 - **Theme**: Ramp-inspired color palette with custom CSS variables

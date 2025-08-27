@@ -2,6 +2,13 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Set NODE_ENV properly for environment detection
+if (!process.env.NODE_ENV) {
+  // Detect environment based on Replit deployment context
+  process.env.NODE_ENV = process.env.REPLIT_DEPLOYMENT ? 'production' : 'development';
+  console.log(`🌍 Environment detected: ${process.env.NODE_ENV}`);
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

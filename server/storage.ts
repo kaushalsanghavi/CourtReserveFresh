@@ -44,8 +44,9 @@ export class DatabaseStorage implements IStorage {
     try {
       const existingMembers = await this.getMembers();
       if (existingMembers.length === 0) {
-        const isProduction = process.env.NODE_ENV === 'production';
-        console.log(`Initializing database with ${isProduction ? 'production' : 'development'} data...`);
+        const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT;
+        const environment = isProduction ? 'production' : 'development';
+        console.log(`🚀 Initializing database with ${environment} data (NODE_ENV: ${process.env.NODE_ENV}, REPLIT_DEPLOYMENT: ${process.env.REPLIT_DEPLOYMENT || 'false'})...`);
         
         // Create members with specific IDs for consistent sample data
         const defaultMembers: InsertMember[] = [
