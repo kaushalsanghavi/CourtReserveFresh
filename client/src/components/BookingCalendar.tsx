@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useSelectedMember } from "./QuickBooking";
-import Comments from "./Comments2";
+import Comments from "./Comments";
 import type { Member, Booking, Comment } from "@shared/schema";
 import { format, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, setHours, setMinutes } from "date-fns";
 
