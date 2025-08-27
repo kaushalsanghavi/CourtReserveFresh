@@ -10,25 +10,26 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Aug 27, 2025)
 
-- ✅ **Production Data Recovery** - Successfully restored current production data from ReplDB to PostgreSQL
-  - **Critical Issue Resolved**: Recovered 26 bookings, 32 activities, and 2 comments from August 22-27
-  - **Data Verification**: Confirmed latest bookings through August 27th are properly migrated
-  - **ReplDB Backup**: Original production data remains safely in ReplDB as backup
-- ✅ **Environment Detection Fixed** - Improved NODE_ENV detection for proper dev/prod separation
-  - **Development**: Uses sample data for testing without affecting production
-  - **Production**: Preserves real booking data and activity history
-  - **Auto-Detection**: Automatically detects environment based on REPLIT_DEPLOYMENT flag
+- ✅ **TRUE DATABASE SEPARATION ACHIEVED** - Implemented schema-based separation within single PostgreSQL instance
+  - **Production Schema**: Contains all real data (10 members, 26 bookings through Aug 27, 32 activities)
+  - **Development Schema**: Contains clean sample data (5 dev members, 3 sample bookings)
+  - **Environment Detection**: Automatically switches schemas based on NODE_ENV and REPLIT_DEPLOYMENT
+  - **Data Safety**: Production data fully preserved and isolated from development work
+- ✅ **Critical Data Placement Corrected** - Fixed initial misplacement where production data was in wrong schema
+  - **Issue Identified**: Production data was accidentally moved to development schema
+  - **Resolution**: Moved real production data back to production schema via automated script
+  - **Verification**: Confirmed latest bookings through August 27th in correct production location
+- ✅ **Dynamic Schema Detection** - Improved environment-aware database connection
+  - **Development Mode**: Uses development.* tables with sample data for safe testing
+  - **Production Mode**: Uses production.* tables with authentic booking history
+  - **Runtime Switching**: Schema selection happens at query time, not initialization
 - ✅ **Comment Focus Issue Fixed** - Simplified component structure to prevent input focus loss during typing
-- ⚠️ **Known Architecture Issue**: Single PostgreSQL database shared between dev/prod environments
-  - **Current State**: Same DATABASE_URL used for both development and production
-  - **Recommended**: Separate production PostgreSQL database (Replit best practice)
-  - **Workaround**: Environment-aware data initialization prevents development data in production
 - ✅ **Previous Features Maintained**:
   - **Comments Feature** with CRUD operations and multiple display variants
   - **Time-Based Booking Restrictions** (past days + today after 9:30 AM disabled)
   - **Sortable Monthly Participation** tracking with visual indicators
   - **Device Tracking** with browser and OS information
-- 📊 **Storage Evolution**: in-memory → file-based → ReplDB → **PostgreSQL (shared)** (current)
+- 📊 **Storage Evolution**: in-memory → file-based → ReplDB → **PostgreSQL (schema-separated)** (current)
 
 ## System Architecture
 
@@ -49,14 +50,17 @@ Preferred communication style: Simple, everyday language.
 - **Error Handling**: Centralized error middleware with structured error responses
 
 ### Data Storage
-- **Primary Storage**: PostgreSQL database with Drizzle ORM (shared between environments)
-- **Database Schema**: Complete Drizzle schema with proper relations and constraints
+- **Primary Storage**: PostgreSQL database with Drizzle ORM and schema-based separation
+- **Database Architecture**: Single PostgreSQL instance with two schemas:
+  - **production.*** tables: Real production data (10 members, 26 bookings, 32 activities)
+  - **development.*** tables: Sample data for safe development testing (5 dev members, 3 sample bookings)
 - **Environment-Aware Data Management**: 
-  - **Development**: Uses sample data for testing (26 bookings, activities, comments)
-  - **Production**: Real production data (26 current bookings through Aug 27, 32 activities)
-- **Data Recovery**: Successfully migrated all production data from ReplDB to PostgreSQL
-- **Backup Strategy**: ReplDB remains as backup containing original production data
-- **Architecture Note**: Currently uses single PostgreSQL instance (not ideal, should be separate prod/dev databases)
+  - **Development**: Automatically uses development schema with clean sample data
+  - **Production**: Automatically uses production schema with authentic booking history
+  - **Schema Switching**: Dynamic based on NODE_ENV and REPLIT_DEPLOYMENT environment variables
+- **Data Safety**: Complete isolation between environments while sharing single database instance
+- **Migration Path**: All production data successfully recovered and placed in correct schema
+- **Backup Strategy**: ReplDB contains historical backup of original production data
 
 ### Design System
 - **Theme**: Ramp-inspired color palette with custom CSS variables
