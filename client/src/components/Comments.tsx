@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,11 +41,8 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
     },
     onSuccess: () => {
       setNewComment("");
-      // Use a more stable query invalidation approach
-      requestAnimationFrame(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/comments", date] });
-        queryClient.invalidateQueries({ queryKey: ["/api/comments"] });
-      });
+      // Invalidate queries without causing re-render during typing
+      queryClient.invalidateQueries({ queryKey: ["/api/comments", date] });
       toast({
         title: "Comment added",
         description: "Your comment has been posted successfully",
@@ -70,6 +67,34 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
     setNewComment(e.target.value);
   }, []);
 
+  // Memoize the comment form to prevent re-renders during typing
+  const CommentForm = memo(() => (
+    selectedMemberId ? (
+      <form onSubmit={handleSubmit} className="space-y-2">
+        <Textarea
+          value={newComment}
+          onChange={handleTextareaChange}
+          placeholder="Add a comment about this day..."
+          className="text-sm"
+          rows={2}
+          data-testid={`textarea-comment-${date}`}
+          autoComplete="off"
+        />
+        <Button
+          type="submit"
+          size="sm"
+          disabled={!newComment.trim() || addCommentMutation.isPending}
+          className="bg-blue-100 text-blue-700 hover:bg-blue-200"
+          data-testid={`button-add-comment-${date}`}
+        >
+          {addCommentMutation.isPending ? "Adding..." : "Add Comment"}
+        </Button>
+      </form>
+    ) : (
+      <p className="text-sm text-gray-500 italic">Select a member to add comments</p>
+    )
+  ));
+
   const CommentsDisplay = ({ inDialog = false }: { inDialog?: boolean }) => (
     <div className={inDialog ? "" : "mt-4 pt-4 border-t border-gray-200"}>
       {!inDialog && <h5 className="text-xs text-gray-500 uppercase tracking-wide mb-2">COMMENTS</h5>}
@@ -93,30 +118,8 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
         <p className="text-sm text-gray-400 italic mb-3">No comments yet</p>
       )}
 
-      {/* Add new comment */}
-      {selectedMemberId ? (
-        <form onSubmit={handleSubmit} className="space-y-2">
-          <Textarea
-            value={newComment}
-            onChange={handleTextareaChange}
-            placeholder="Add a comment about this day..."
-            className="text-sm"
-            rows={2}
-            data-testid={`textarea-comment-${date}`}
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={!newComment.trim() || addCommentMutation.isPending}
-            className="bg-blue-100 text-blue-700 hover:bg-blue-200"
-            data-testid={`button-add-comment-${date}`}
-          >
-            {addCommentMutation.isPending ? "Adding..." : "Add Comment"}
-          </Button>
-        </form>
-      ) : (
-        <p className="text-sm text-gray-500 italic">Select a member to add comments</p>
-      )}
+      {/* Add new comment - memoized to prevent re-renders */}
+      <CommentForm />
     </div>
   );
 
