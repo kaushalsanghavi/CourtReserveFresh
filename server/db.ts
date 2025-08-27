@@ -7,7 +7,7 @@ neonConfig.webSocketConstructor = ws;
 
 // Environment-aware database connection with schema separation
 function getDatabaseConfig() {
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT;
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT || process.env.REPLIT_ENVIRONMENT === 'production';
   
   if (!process.env.DATABASE_URL) {
     throw new Error(
@@ -31,6 +31,6 @@ export const db = drizzle({ client: pool, schema });
 
 // Dynamic schema detection for use in queries
 export function getCurrentSchema(): string {
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT;
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT || process.env.REPLIT_ENVIRONMENT === 'production';
   return isProduction ? 'production' : 'development';
 }
