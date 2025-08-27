@@ -8,29 +8,25 @@ A full-stack badminton court booking application built with modern web technolog
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Aug 20, 2025)
+## Recent Changes (Aug 27, 2025)
 
-- ✅ **Successfully migrated to ReplDB storage** for deployment persistence (replacing file-based storage)
-- ✅ **Fixed member selection context** - booking buttons now work correctly after selecting a member
-- ✅ **Resolved booking functionality** - users can now book and cancel slots successfully
-- ✅ **Enhanced device tracking** to capture exact device model, OS version, and browser information
-- ✅ **Improved UI** to show selected member and highlight their bookings in green
-- ✅ **Data persistence verified** - bookings survive deployment restarts using ReplDB
-- ✅ **Implemented Comments Feature** with full CRUD operations and persistent storage
-- ✅ **Created Multiple Comment Variants** to reduce visual clutter:
-  - **Compact Variant (Default)**: Clickable comment icon with count - minimal footprint
-  - **Modal Variant**: Comment count with separate "View" button for clearer affordances
-  - **Inline Variant**: Full comments section embedded in cards (makes cards taller)
-- ✅ **Added Design Demo Page** at `/comments-demo` to showcase different visual approaches
-- ✅ **Implemented Time-Based Booking Restrictions**:
-  - **Past Days**: Disabled/grayed out but viewable for comments and booking history
-  - **Today After 9:30 AM**: Becomes unbookable to prevent last-minute bookings
-  - **Visual Indicators**: Disabled days have gray styling and different status labels
-- ✅ **Production Deployment Ready**:
-  - **Environment-Based Feature Toggling**: Demo routes/links automatically hidden in production
-  - **Clean Production Interface**: No development tools visible to end users
-  - **Persistent Data Storage**: ReplDB ensures data survives restarts and deployments
-- ⚠️ **Storage Migration History**: App previously used in-memory → file-based → ReplDB storage
+- ✅ **CRITICAL: Migrated to PostgreSQL Database** - Completely separated development and production data
+  - **Problem Solved**: ReplDB was sharing data between dev and production environments (dangerous!)
+  - **Solution**: PostgreSQL with environment-based separation ensures production data safety
+  - **Development Impact**: Clean development database with fresh member data
+  - **Production Safety**: Existing production data in ReplDB remains completely untouched
+- ✅ **Fixed Comment Focus Issue** - Simplified component structure to prevent input focus loss during typing
+- ✅ **Enhanced Database Architecture**:
+  - **Development**: PostgreSQL database with proper schema and relations
+  - **Production**: Will continue using existing ReplDB data until manual migration decision
+  - **Data Integrity**: Zero risk of overwriting production data during development
+- ✅ **Previous Features Maintained**:
+  - **Comments Feature** with CRUD operations and multiple display variants
+  - **Time-Based Booking Restrictions** (past days + today after 9:30 AM disabled)
+  - **Sortable Monthly Participation** tracking with visual indicators
+  - **Device Tracking** with browser and OS information
+  - **Environment-Based Feature Toggling** for production deployment
+- ⚠️ **Storage Evolution**: in-memory → file-based → ReplDB → **PostgreSQL** (current)
 
 ## System Architecture
 
@@ -51,10 +47,11 @@ Preferred communication style: Simple, everyday language.
 - **Error Handling**: Centralized error middleware with structured error responses
 
 ### Data Storage
-- **Primary Storage**: File-based JSON storage system using local files
-- **Database Schema**: Drizzle ORM schema definitions with PostgreSQL dialect (prepared for future migration)
-- **Data Files**: Separate JSON files for members, bookings, and activities in `/data` directory
-- **Storage Interface**: Abstracted storage layer with IStorage interface for easy database swapping
+- **Primary Storage**: PostgreSQL database with Drizzle ORM for development
+- **Database Schema**: Complete Drizzle schema with proper relations and constraints
+- **Environment Separation**: Development uses PostgreSQL, production continues with existing ReplDB data
+- **Storage Interface**: Abstracted IStorage interface allows seamless database switching
+- **Data Safety**: Complete separation ensures production data is never accidentally modified during development
 
 ### Design System
 - **Theme**: Ramp-inspired color palette with custom CSS variables

@@ -1,9 +1,16 @@
-
-import { type Member, type InsertMember, type Booking, type InsertBooking, type Activity, type InsertActivity, type Comment, type InsertComment } from "@shared/schema";
-import { randomUUID } from "crypto";
-import Database from "@replit/database";
-
-const db = new Database();
+import { db } from "./db";
+import { members, bookings, activities, comments } from "@shared/schema";
+import { eq, desc, and } from "drizzle-orm";
+import type { 
+  Member, 
+  InsertMember, 
+  Booking, 
+  InsertBooking, 
+  Activity, 
+  InsertActivity,
+  Comment,
+  InsertComment 
+} from "@shared/schema";
 
 export interface IStorage {
   // Members
@@ -27,78 +34,57 @@ export interface IStorage {
   createComment(comment: InsertComment): Promise<Comment>;
 }
 
-export class ReplDBStorage implements IStorage {
+export class DatabaseStorage implements IStorage {
   constructor() {
     this.initializeData();
   }
 
   private async initializeData() {
     // Initialize with default members if they don't exist
-    const existingMembers = await this.getMembers();
-    if (existingMembers.length === 0) {
-      const defaultMembers: Member[] = [
-        { id: randomUUID(), name: "Ashish", initials: "A", avatarColor: "green", createdAt: new Date() },
-        { id: randomUUID(), name: "Gagan", initials: "G", avatarColor: "blue", createdAt: new Date() },
-        { id: randomUUID(), name: "He-man", initials: "H", avatarColor: "purple", createdAt: new Date() },
-        { id: randomUUID(), name: "Kaushal", initials: "K", avatarColor: "yellow", createdAt: new Date() },
-        { id: randomUUID(), name: "Main hoon na", initials: "MH", avatarColor: "pink", createdAt: new Date() },
-        { id: randomUUID(), name: "Aswini", initials: "AS", avatarColor: "indigo", createdAt: new Date() },
-        { id: randomUUID(), name: "Rahul", initials: "R", avatarColor: "orange", createdAt: new Date() },
-        { id: randomUUID(), name: "RK", initials: "RK", avatarColor: "red", createdAt: new Date() },
-        { id: randomUUID(), name: "Anjali", initials: "AN", avatarColor: "teal", createdAt: new Date() },
-        { id: randomUUID(), name: "Kumar", initials: "KU", avatarColor: "cyan", createdAt: new Date() },
-      ];
-      await db.set("members", defaultMembers);
+    try {
+      const existingMembers = await this.getMembers();
+      if (existingMembers.length === 0) {
+        const defaultMembers: InsertMember[] = [
+          { name: "Ashish", initials: "A", avatarColor: "green" },
+          { name: "Gagan", initials: "G", avatarColor: "blue" },
+          { name: "He-man", initials: "H", avatarColor: "purple" },
+          { name: "Kaushal", initials: "K", avatarColor: "yellow" },
+          { name: "Main hoon na", initials: "MH", avatarColor: "pink" },
+          { name: "Aswini", initials: "AS", avatarColor: "indigo" },
+          { name: "Rahul", initials: "R", avatarColor: "orange" },
+          { name: "RK", initials: "RK", avatarColor: "red" },
+          { name: "Anjali", initials: "AN", avatarColor: "teal" },
+          { name: "Kumar", initials: "KU", avatarColor: "cyan" },
+        ];
+        
+        for (const member of defaultMembers) {
+          await db.insert(members).values(member);
+        }
+      }
+    } catch (error) {
+      console.log('Database not ready yet, will initialize later:', error);
     }
   }
 
   async getMembers(): Promise<Member[]> {
     try {
-      const result = await db.get("members");
-      console.log('Members result:', result);
-      // Handle different possible return formats from ReplDB
-      if (result === null || result === undefined) {
-        return [];
-      }
-      if (Array.isArray(result)) {
-        return result;
-      }
-      if (result && typeof result === 'object' && 'ok' in result && result.ok && result.value) {
-        return result.value;
-      }
-      return [];
+      const result = await db.select().from(members);
+      console.log('Members result:', { ok: true, value: result });
+      return result;
     } catch (error) {
       console.error('Error getting members:', error);
       return [];
     }
   }
 
-  async createMember(insertMember: InsertMember): Promise<Member> {
-    const members = await this.getMembers();
-    const member: Member = {
-      ...insertMember,
-      id: randomUUID(),
-      createdAt: new Date(),
-    };
-    members.push(member);
-    await db.set("members", members);
-    return member;
+  async createMember(member: InsertMember): Promise<Member> {
+    const [newMember] = await db.insert(members).values(member).returning();
+    return newMember;
   }
 
   async getBookings(): Promise<Booking[]> {
     try {
-      const result = await db.get("bookings");
-      console.log('Bookings result:', result);
-      if (result === null || result === undefined) {
-        return [];
-      }
-      if (Array.isArray(result)) {
-        return result;
-      }
-      if (result && typeof result === 'object' && 'ok' in result && result.ok && result.value) {
-        return result.value;
-      }
-      return [];
+      return await db.select().from(bookings).orderBy(desc(bookings.createdAt));
     } catch (error) {
       console.error('Error getting bookings:', error);
       return [];
@@ -106,112 +92,77 @@ export class ReplDBStorage implements IStorage {
   }
 
   async getBookingsByDate(date: string): Promise<Booking[]> {
-    const bookings = await this.getBookings();
-    return bookings.filter(booking => booking.date === date);
+    try {
+      return await db.select().from(bookings).where(eq(bookings.date, date));
+    } catch (error) {
+      console.error('Error getting bookings by date:', error);
+      return [];
+    }
   }
 
   async getBookingsByMember(memberId: string): Promise<Booking[]> {
-    const bookings = await this.getBookings();
-    return bookings.filter(booking => booking.memberId === memberId);
+    try {
+      return await db.select().from(bookings).where(eq(bookings.memberId, memberId));
+    } catch (error) {
+      console.error('Error getting bookings by member:', error);
+      return [];
+    }
   }
 
-  async createBooking(insertBooking: InsertBooking): Promise<Booking> {
-    const bookings = await this.getBookings();
-    const booking: Booking = {
-      ...insertBooking,
-      id: randomUUID(),
-      createdAt: new Date(),
-    };
-    bookings.push(booking);
-    await db.set("bookings", bookings);
-    return booking;
+  async createBooking(booking: InsertBooking): Promise<Booking> {
+    const [newBooking] = await db.insert(bookings).values(booking).returning();
+    return newBooking;
   }
 
   async deleteBooking(memberId: string, date: string): Promise<boolean> {
-    const bookings = await this.getBookings();
-    const filteredBookings = bookings.filter(
-      booking => !(booking.memberId === memberId && booking.date === date)
-    );
-    
-    if (filteredBookings.length === bookings.length) {
-      return false; // No booking found to delete
+    try {
+      const result = await db.delete(bookings)
+        .where(and(eq(bookings.memberId, memberId), eq(bookings.date, date)));
+      return true;
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      return false;
     }
-    
-    await db.set("bookings", filteredBookings);
-    return true;
   }
 
   async getActivities(): Promise<Activity[]> {
     try {
-      const result = await db.get("activities");
-      console.log('Activities result:', result);
-      let allActivities: Activity[] = [];
-      if (result === null || result === undefined) {
-        allActivities = [];
-      } else if (Array.isArray(result)) {
-        allActivities = result;
-      } else if (result && typeof result === 'object' && 'ok' in result && result.ok && result.value) {
-        allActivities = result.value;
-      }
-      return allActivities.sort((a: Activity, b: Activity) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const result = await db.select().from(activities).orderBy(desc(activities.createdAt));
+      console.log('Activities result:', { ok: true, value: result });
+      return result;
     } catch (error) {
       console.error('Error getting activities:', error);
       return [];
     }
   }
 
-  async createActivity(insertActivity: InsertActivity): Promise<Activity> {
-    const activities = await this.getActivities();
-    const activity: Activity = {
-      ...insertActivity,
-      id: randomUUID(),
-      createdAt: new Date(),
-    };
-    activities.push(activity);
-    await db.set("activities", activities);
-    return activity;
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const [newActivity] = await db.insert(activities).values(activity).returning();
+    return newActivity;
   }
 
-  // Comments
   async getComments(): Promise<Comment[]> {
     try {
-      const result = await db.get("comments");
-      console.log('Comments result:', result);
-      
-      if (result === null || result === undefined) {
-        return [];
-      }
-      
-      if (result && typeof result === 'object' && 'ok' in result) {
-        if (result.ok && result.value) {
-          return Array.isArray(result.value) ? result.value : [];
-        }
-        return [];
-      }
-      
-      return Array.isArray(result) ? result : [];
+      return await db.select().from(comments).orderBy(desc(comments.createdAt));
     } catch (error) {
-      console.error("Error getting comments:", error);
+      console.error('Error getting comments:', error);
       return [];
     }
   }
 
   async getCommentsByDate(date: string): Promise<Comment[]> {
-    const allComments = await this.getComments();
-    return allComments.filter(comment => comment.date === date);
+    try {
+      return await db.select().from(comments).where(eq(comments.date, date));
+    } catch (error) {
+      console.error('Error getting comments by date:', error);
+      return [];
+    }
   }
 
-  async createComment(insertComment: InsertComment): Promise<Comment> {
-    const comments = await this.getComments();
-    const comment: Comment = {
-      ...insertComment,
-      id: randomUUID(),
-      createdAt: new Date(),
-    };
-    comments.push(comment);
-    await db.set("comments", comments);
-    return comment;
+  async createComment(comment: InsertComment): Promise<Comment> {
+    const [newComment] = await db.insert(comments).values(comment).returning();
+    return newComment;
   }
 }
 
-export const storage = new ReplDBStorage();
+export const storage = new DatabaseStorage();
