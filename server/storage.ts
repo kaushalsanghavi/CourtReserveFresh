@@ -158,8 +158,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMember(member: InsertMember): Promise<Member> {
-    const [newMember] = await db.insert(members).values(member).returning();
-    return newMember;
+    try {
+      const result = await db.execute(
+        sql.raw(`INSERT INTO ${getCurrentSchema()}.members (id, name, initials, avatar_color, created_at) 
+                 VALUES ('${member.id}', '${member.name}', '${member.initials}', '${member.avatarColor}', NOW()) 
+                 RETURNING id, name, initials, avatar_color, created_at`)
+      );
+      const row = result.rows[0];
+      return {
+        id: row.id as string,
+        name: row.name as string,
+        initials: row.initials as string,
+        avatarColor: row.avatar_color as string,
+        createdAt: new Date(row.created_at as string)
+      };
+    } catch (error) {
+      console.error('Error creating member:', error);
+      throw error;
+    }
   }
 
   async getBookings(): Promise<Booking[]> {
@@ -183,7 +199,16 @@ export class DatabaseStorage implements IStorage {
 
   async getBookingsByDate(date: string): Promise<Booking[]> {
     try {
-      return await db.select().from(bookings).where(eq(bookings.date, date));
+      const result = await db.execute(
+        sql.raw(`SELECT id, member_id, member_name, date, created_at FROM ${getCurrentSchema()}.bookings WHERE date = '${date}' ORDER BY created_at DESC`)
+      );
+      return result.rows.map(row => ({
+        id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
+        date: row.date as string,
+        createdAt: new Date(row.created_at as string)
+      }));
     } catch (error) {
       console.error('Error getting bookings by date:', error);
       return [];
@@ -192,7 +217,16 @@ export class DatabaseStorage implements IStorage {
 
   async getBookingsByMember(memberId: string): Promise<Booking[]> {
     try {
-      return await db.select().from(bookings).where(eq(bookings.memberId, memberId));
+      const result = await db.execute(
+        sql.raw(`SELECT id, member_id, member_name, date, created_at FROM ${getCurrentSchema()}.bookings WHERE member_id = '${memberId}' ORDER BY created_at DESC`)
+      );
+      return result.rows.map(row => ({
+        id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
+        date: row.date as string,
+        createdAt: new Date(row.created_at as string)
+      }));
     } catch (error) {
       console.error('Error getting bookings by member:', error);
       return [];
@@ -200,14 +234,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBooking(booking: InsertBooking): Promise<Booking> {
-    const [newBooking] = await db.insert(bookings).values(booking).returning();
-    return newBooking;
+    try {
+      const result = await db.execute(
+        sql.raw(`INSERT INTO ${getCurrentSchema()}.bookings (id, member_id, member_name, date, created_at) 
+                 VALUES ('${booking.id}', '${booking.memberId}', '${booking.memberName}', '${booking.date}', NOW()) 
+                 RETURNING id, member_id, member_name, date, created_at`)
+      );
+      const row = result.rows[0];
+      return {
+        id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
+        date: row.date as string,
+        createdAt: new Date(row.created_at as string)
+      };
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      throw error;
+    }
   }
 
   async deleteBooking(memberId: string, date: string): Promise<boolean> {
     try {
-      const result = await db.delete(bookings)
-        .where(and(eq(bookings.memberId, memberId), eq(bookings.date, date)));
+      await db.execute(
+        sql.raw(`DELETE FROM ${getCurrentSchema()}.bookings WHERE member_id = '${memberId}' AND date = '${date}'`)
+      );
       return true;
     } catch (error) {
       console.error('Error deleting booking:', error);
@@ -238,13 +289,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createActivity(activity: InsertActivity): Promise<Activity> {
-    const [newActivity] = await db.insert(activities).values(activity).returning();
-    return newActivity;
+    try {
+      const result = await db.execute(
+        sql.raw(`INSERT INTO ${getCurrentSchema()}.activities (id, member_id, member_name, action, date, device_info, created_at) 
+                 VALUES ('${activity.id}', '${activity.memberId}', '${activity.memberName}', '${activity.action}', '${activity.date}', '${activity.deviceInfo}', NOW()) 
+                 RETURNING id, member_id, member_name, action, date, device_info, created_at`)
+      );
+      const row = result.rows[0];
+      return {
+        id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
+        action: row.action as string,
+        date: row.date as string,
+        deviceInfo: row.device_info as string,
+        createdAt: new Date(row.created_at as string)
+      };
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      throw error;
+    }
   }
 
   async getComments(): Promise<Comment[]> {
     try {
-      return await db.select().from(comments).orderBy(desc(comments.createdAt));
+      const result = await db.execute(
+        sql.raw(`SELECT id, date, comment, created_at FROM ${getCurrentSchema()}.comments ORDER BY created_at DESC`)
+      );
+      return result.rows.map(row => ({
+        id: row.id as string,
+        date: row.date as string,
+        comment: row.comment as string,
+        createdAt: new Date(row.created_at as string)
+      }));
     } catch (error) {
       console.error('Error getting comments:', error);
       return [];
@@ -270,8 +347,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createComment(comment: InsertComment): Promise<Comment> {
-    const [newComment] = await db.insert(comments).values(comment).returning();
-    return newComment;
+    try {
+      const result = await db.execute(
+        sql.raw(`INSERT INTO ${getCurrentSchema()}.comments (id, date, comment, created_at) 
+                 VALUES ('${comment.id}', '${comment.date}', '${comment.comment}', NOW()) 
+                 RETURNING id, date, comment, created_at`)
+      );
+      const row = result.rows[0];
+      return {
+        id: row.id as string,
+        date: row.date as string,
+        comment: row.comment as string,
+        createdAt: new Date(row.created_at as string)
+      };
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      throw error;
+    }
   }
 }
 
