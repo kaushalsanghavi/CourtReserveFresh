@@ -40,11 +40,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async initializeData() {
-    // Initialize with default members and sample data if they don't exist
+    // Initialize with members and environment-appropriate data
     try {
       const existingMembers = await this.getMembers();
       if (existingMembers.length === 0) {
-        console.log('Initializing database with sample data...');
+        const isProduction = process.env.NODE_ENV === 'production';
+        console.log(`Initializing database with ${isProduction ? 'production' : 'development'} data...`);
         
         // Create members with specific IDs for consistent sample data
         const defaultMembers: InsertMember[] = [
@@ -67,7 +68,11 @@ export class DatabaseStorage implements IStorage {
           createdMembers.push(newMember);
         }
 
-        // Add sample bookings from recent dates
+        // Only add sample data in development environment
+        if (!isProduction) {
+          console.log('Adding sample bookings and activities for development...');
+
+          // Add sample bookings from recent dates
         const sampleBookings: InsertBooking[] = [
           { memberId: createdMembers[0].id, memberName: "Ashish", date: "2025-08-20" },
           { memberId: createdMembers[1].id, memberName: "Gagan", date: "2025-08-20" },
@@ -121,7 +126,10 @@ export class DatabaseStorage implements IStorage {
           await db.insert(comments).values(comment);
         }
 
-        console.log('Sample data initialized successfully!');
+          console.log('Development sample data initialized successfully!');
+        } else {
+          console.log('Production database initialized with members only (no sample data).');
+        }
       }
     } catch (error) {
       console.log('Database not ready yet, will initialize later:', error);

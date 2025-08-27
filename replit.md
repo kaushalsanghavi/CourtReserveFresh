@@ -10,23 +10,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Aug 27, 2025)
 
-- ✅ **CRITICAL: Migrated to PostgreSQL Database** - Completely separated development and production data
-  - **Problem Solved**: ReplDB was sharing data between dev and production environments (dangerous!)
-  - **Solution**: PostgreSQL with environment-based separation ensures production data safety
-  - **Development Impact**: Clean development database with fresh member data
-  - **Production Safety**: Existing production data in ReplDB remains completely untouched
+- ✅ **CRITICAL: Full PostgreSQL Migration** - Unified database architecture across all environments
+  - **Problem Solved**: Eliminated dangerous dev/prod datastore inconsistency 
+  - **Solution**: PostgreSQL for both development and production with environment-aware data initialization
+  - **Development**: Sample data automatically populated for testing all features
+  - **Production**: Clean initialization with only members (no sample bookings/activities)
+  - **Migration Tools**: Created scripts to transfer existing ReplDB data to PostgreSQL when ready
 - ✅ **Fixed Comment Focus Issue** - Simplified component structure to prevent input focus loss during typing
 - ✅ **Enhanced Database Architecture**:
-  - **Development**: PostgreSQL database with proper schema and relations
-  - **Production**: Will continue using existing ReplDB data until manual migration decision
-  - **Data Integrity**: Zero risk of overwriting production data during development
+  - **Unified Storage**: PostgreSQL with Drizzle ORM across all environments
+  - **Environment-Aware Initialization**: Smart data seeding based on NODE_ENV
+  - **Data Safety**: Migration scripts preserve all existing production data
+  - **Schema Consistency**: Single source of truth for database structure
 - ✅ **Previous Features Maintained**:
   - **Comments Feature** with CRUD operations and multiple display variants
   - **Time-Based Booking Restrictions** (past days + today after 9:30 AM disabled)
   - **Sortable Monthly Participation** tracking with visual indicators
   - **Device Tracking** with browser and OS information
   - **Environment-Based Feature Toggling** for production deployment
-- ⚠️ **Storage Evolution**: in-memory → file-based → ReplDB → **PostgreSQL** (current)
+- ⚠️ **Storage Evolution**: in-memory → file-based → ReplDB → **PostgreSQL (unified)** (current)
 
 ## System Architecture
 
@@ -47,11 +49,13 @@ Preferred communication style: Simple, everyday language.
 - **Error Handling**: Centralized error middleware with structured error responses
 
 ### Data Storage
-- **Primary Storage**: PostgreSQL database with Drizzle ORM for development
+- **Primary Storage**: PostgreSQL database with Drizzle ORM across all environments
 - **Database Schema**: Complete Drizzle schema with proper relations and constraints
-- **Environment Separation**: Development uses PostgreSQL, production continues with existing ReplDB data
-- **Storage Interface**: Abstracted IStorage interface allows seamless database switching
-- **Data Safety**: Complete separation ensures production data is never accidentally modified during development
+- **Environment-Aware Initialization**: 
+  - **Development**: Automatically populates with comprehensive sample data for testing
+  - **Production**: Clean initialization with only team members (no sample bookings)
+- **Migration Strategy**: Scripts available to transfer existing ReplDB data to PostgreSQL
+- **Data Consistency**: Single database technology eliminates dev/prod architecture differences
 
 ### Design System
 - **Theme**: Ramp-inspired color palette with custom CSS variables
