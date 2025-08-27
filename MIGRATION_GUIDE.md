@@ -7,14 +7,15 @@ We've successfully unified the application to use PostgreSQL for both developmen
 ## Current Status
 
 ### ✅ Development Environment
-- **Database**: PostgreSQL with full sample data
+- **Database**: PostgreSQL with sample data for testing
 - **Features**: All bookings, activities, comments, and members populated for testing
+- **Data**: Clean sample data that resets on each restart
 - **Status**: Ready for development and testing
 
 ### 🔄 Production Environment (Next Steps)
 - **Current**: Still using ReplDB with your real data (safe and untouched)
 - **Target**: PostgreSQL database with your migrated real data
-- **Migration**: Available when you're ready to deploy
+- **Migration**: Will happen automatically during production deployment
 
 ## Architecture Benefits
 
@@ -40,17 +41,20 @@ Your current ReplDB data is completely safe. The migration script will:
 - Transfer members, bookings, activities, and comments to PostgreSQL
 - Preserve all IDs, timestamps, and relationships
 
-### Step 2: Migration Execution
+### Step 2: Migration Execution (PRODUCTION ONLY)
 ```bash
-# When ready to migrate production data
-tsx scripts/migrate-repldb-to-postgres.ts
+# This script ONLY runs during production deployment
+NODE_ENV=production tsx scripts/production-migration.ts
 ```
 
 This script will:
-1. Extract all data from ReplDB
-2. Insert into PostgreSQL with original IDs and timestamps
-3. Verify data integrity
-4. Provide migration summary
+1. Verify it's running in production environment
+2. Extract all data from ReplDB
+3. Insert into PRODUCTION PostgreSQL with original IDs and timestamps
+4. Verify data integrity
+5. Provide migration summary
+
+**Important**: This script has safety checks and will NOT run in development.
 
 ### Step 3: Production Deployment
 Once migrated, your production app will:
