@@ -40,10 +40,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async initializeData() {
-    // Initialize with default members if they don't exist
+    // Initialize with default members and sample data if they don't exist
     try {
       const existingMembers = await this.getMembers();
       if (existingMembers.length === 0) {
+        console.log('Initializing database with sample data...');
+        
+        // Create members with specific IDs for consistent sample data
         const defaultMembers: InsertMember[] = [
           { name: "Ashish", initials: "A", avatarColor: "green" },
           { name: "Gagan", initials: "G", avatarColor: "blue" },
@@ -57,9 +60,68 @@ export class DatabaseStorage implements IStorage {
           { name: "Kumar", initials: "KU", avatarColor: "cyan" },
         ];
         
+        // Insert members and get their IDs
+        const createdMembers: Member[] = [];
         for (const member of defaultMembers) {
-          await db.insert(members).values(member);
+          const [newMember] = await db.insert(members).values(member).returning();
+          createdMembers.push(newMember);
         }
+
+        // Add sample bookings from recent dates
+        const sampleBookings: InsertBooking[] = [
+          { memberId: createdMembers[0].id, memberName: "Ashish", date: "2025-08-20" },
+          { memberId: createdMembers[1].id, memberName: "Gagan", date: "2025-08-20" },
+          { memberId: createdMembers[2].id, memberName: "He-man", date: "2025-08-20" },
+          { memberId: createdMembers[5].id, memberName: "Aswini", date: "2025-08-20" },
+          { memberId: createdMembers[7].id, memberName: "RK", date: "2025-08-20" },
+          { memberId: createdMembers[8].id, memberName: "Anjali", date: "2025-08-20" },
+          { memberId: createdMembers[3].id, memberName: "Kaushal", date: "2025-08-22" },
+          { memberId: createdMembers[2].id, memberName: "He-man", date: "2025-08-25" },
+          { memberId: createdMembers[3].id, memberName: "Kaushal", date: "2025-08-25" },
+          { memberId: createdMembers[1].id, memberName: "Gagan", date: "2025-08-25" },
+          { memberId: createdMembers[2].id, memberName: "He-man", date: "2025-08-27" },
+          { memberId: createdMembers[2].id, memberName: "He-man", date: "2025-08-28" },
+          { memberId: createdMembers[2].id, memberName: "He-man", date: "2025-08-29" },
+        ];
+
+        for (const booking of sampleBookings) {
+          await db.insert(bookings).values(booking);
+        }
+
+        // Add sample activities
+        const sampleActivities: InsertActivity[] = [
+          { memberId: createdMembers[0].id, memberName: "Ashish", action: "booked a slot for", date: "2025-08-20", deviceInfo: "Mac Desktop (macOS 10.15.7) - Chrome" },
+          { memberId: createdMembers[1].id, memberName: "Gagan", action: "booked a slot for", date: "2025-08-20", deviceInfo: "Mac Desktop (macOS 10.15.7) - Chrome" },
+          { memberId: createdMembers[2].id, memberName: "He-man", action: "booked a slot for", date: "2025-08-20", deviceInfo: "Mac Desktop (macOS 10.15.7) - Chrome" },
+          { memberId: createdMembers[5].id, memberName: "Aswini", action: "booked a slot for", date: "2025-08-20", deviceInfo: "Mac Desktop (macOS 10.15.7) - Chrome" },
+          { memberId: createdMembers[7].id, memberName: "RK", action: "booked a slot for", date: "2025-08-20", deviceInfo: "Mac Desktop (macOS 10.15.7) - Chrome" },
+          { memberId: createdMembers[8].id, memberName: "Anjali", action: "booked a slot for", date: "2025-08-20", deviceInfo: "Mac Desktop (macOS 10.15.7) - Chrome" },
+          { memberId: createdMembers[3].id, memberName: "Kaushal", action: "booked a slot for", date: "2025-08-22", deviceInfo: "Mac Desktop (macOS 10.15.7) - Chrome" },
+          { memberId: createdMembers[2].id, memberName: "He-man", action: "booked a slot for", date: "2025-08-25", deviceInfo: "Mac Desktop (macOS 10.15.7) - Chrome" },
+          { memberId: createdMembers[3].id, memberName: "Kaushal", action: "booked a slot for", date: "2025-08-25", deviceInfo: "Mac Desktop (macOS 10.15.7) - Chrome" },
+          { memberId: createdMembers[1].id, memberName: "Gagan", action: "booked a slot for", date: "2025-08-25", deviceInfo: "iPhone (iOS 18.6.1) - Safari" },
+          { memberId: createdMembers[2].id, memberName: "He-man", action: "booked a slot for", date: "2025-08-27", deviceInfo: "Mac Desktop (macOS 10.15.7) - Chrome" },
+          { memberId: createdMembers[2].id, memberName: "He-man", action: "booked a slot for", date: "2025-08-28", deviceInfo: "Android 10 K (Android 10) - Edge" },
+          { memberId: createdMembers[2].id, memberName: "He-man", action: "booked a slot for", date: "2025-08-29", deviceInfo: "Mac Desktop (macOS 10.15.7) - Chrome" },
+        ];
+
+        for (const activity of sampleActivities) {
+          await db.insert(activities).values(activity);
+        }
+
+        // Add some sample comments
+        const sampleComments: InsertComment[] = [
+          { memberId: createdMembers[0].id, memberName: "Ashish", date: "2025-08-20", comment: "Looking forward to playing today!" },
+          { memberId: createdMembers[1].id, memberName: "Gagan", date: "2025-08-20", comment: "I'll bring the shuttlecocks" },
+          { memberId: createdMembers[2].id, memberName: "He-man", date: "2025-08-25", comment: "Can we start 15 minutes early?" },
+          { memberId: createdMembers[3].id, memberName: "Kaushal", date: "2025-08-25", comment: "Sure, sounds good!" },
+        ];
+
+        for (const comment of sampleComments) {
+          await db.insert(comments).values(comment);
+        }
+
+        console.log('Sample data initialized successfully!');
       }
     } catch (error) {
       console.log('Database not ready yet, will initialize later:', error);
