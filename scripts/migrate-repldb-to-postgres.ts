@@ -38,7 +38,7 @@ async function migrateData() {
           name: member.name,
           initials: member.initials,
           avatarColor: member.avatarColor,
-          createdAt: member.createdAt
+          createdAt: new Date(member.createdAt)
         });
       }
       console.log(`✅ Migrated ${memberData.length} members`);
@@ -64,7 +64,7 @@ async function migrateData() {
           memberId: booking.memberId,
           memberName: booking.memberName,
           date: booking.date,
-          createdAt: booking.createdAt
+          createdAt: new Date(booking.createdAt)
         });
       }
       console.log(`✅ Migrated ${bookingData.length} bookings`);
@@ -92,7 +92,7 @@ async function migrateData() {
           action: activity.action,
           date: activity.date,
           deviceInfo: activity.deviceInfo,
-          createdAt: activity.createdAt
+          createdAt: new Date(activity.createdAt)
         });
       }
       console.log(`✅ Migrated ${activityData.length} activities`);
@@ -119,7 +119,7 @@ async function migrateData() {
           memberName: comment.memberName,
           date: comment.date,
           comment: comment.comment,
-          createdAt: comment.createdAt
+          createdAt: new Date(comment.createdAt)
         });
       }
       console.log(`✅ Migrated ${commentData.length} comments`);
