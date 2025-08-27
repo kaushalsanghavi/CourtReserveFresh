@@ -140,6 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log the activity
       const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
       await storage.createActivity({
+        id: crypto.randomUUID(),
         memberId,
         memberName,
         action: "booked a slot for",
@@ -175,6 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log the activity
       const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
       await storage.createActivity({
+        id: crypto.randomUUID(),
         memberId,
         memberName,
         action: "cancelled a slot for",
@@ -227,6 +229,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create the comment
       const newComment = await storage.createComment({
+        id: crypto.randomUUID(),
         memberId,
         memberName,
         date,

@@ -314,10 +314,12 @@ export class DatabaseStorage implements IStorage {
   async getComments(): Promise<Comment[]> {
     try {
       const result = await db.execute(
-        sql.raw(`SELECT id, date, comment, created_at FROM ${getCurrentSchema()}.comments ORDER BY created_at DESC`)
+        sql.raw(`SELECT id, member_id, member_name, date, comment, created_at FROM ${getCurrentSchema()}.comments ORDER BY created_at DESC`)
       );
       return result.rows.map(row => ({
         id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
         date: row.date as string,
         comment: row.comment as string,
         createdAt: new Date(row.created_at as string)
@@ -331,10 +333,12 @@ export class DatabaseStorage implements IStorage {
   async getCommentsByDate(date: string): Promise<Comment[]> {
     try {
       const result = await db.execute(
-        sql.raw(`SELECT id, date, comment, created_at FROM ${getCurrentSchema()}.comments WHERE date = '${date}' ORDER BY created_at DESC`)
+        sql.raw(`SELECT id, member_id, member_name, date, comment, created_at FROM ${getCurrentSchema()}.comments WHERE date = '${date}' ORDER BY created_at DESC`)
       );
       const comments = result.rows.map(row => ({
         id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
         date: row.date as string,
         comment: row.comment as string,
         createdAt: new Date(row.created_at as string)
@@ -349,13 +353,15 @@ export class DatabaseStorage implements IStorage {
   async createComment(comment: InsertComment): Promise<Comment> {
     try {
       const result = await db.execute(
-        sql.raw(`INSERT INTO ${getCurrentSchema()}.comments (id, date, comment, created_at) 
-                 VALUES ('${comment.id}', '${comment.date}', '${comment.comment}', NOW()) 
-                 RETURNING id, date, comment, created_at`)
+        sql.raw(`INSERT INTO ${getCurrentSchema()}.comments (id, member_id, member_name, date, comment, created_at) 
+                 VALUES ('${comment.id}', '${comment.memberId}', '${comment.memberName}', '${comment.date}', '${comment.comment}', NOW()) 
+                 RETURNING id, member_id, member_name, date, comment, created_at`)
       );
       const row = result.rows[0];
       return {
         id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
         date: row.date as string,
         comment: row.comment as string,
         createdAt: new Date(row.created_at as string)
