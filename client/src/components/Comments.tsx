@@ -1,15 +1,11 @@
-import { useState, useCallback, useMemo, memo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { useSelectedMember } from "./QuickBooking";
+import { Button } from "@/components/ui/button";
 import type { Comment } from "@shared/schema";
 import { format } from "date-fns";
-import { MessageCircle, Plus } from "lucide-react";
+import { MessageCircle } from "lucide-react";
+import CommentTextarea from "./CommentTextarea";
 
 interface CommentsProps {
   date: string;
@@ -17,83 +13,9 @@ interface CommentsProps {
 }
 
 export default function Comments({ date, variant = 'modal' }: CommentsProps) {
-  const [newComment, setNewComment] = useState("");
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { selectedMemberId, selectedMember } = useSelectedMember();
-
   const { data: comments = [] } = useQuery<Comment[]>({
     queryKey: ["/api/comments", date],
   });
-
-  const addCommentMutation = useMutation({
-    mutationFn: async (comment: string) => {
-      if (!selectedMemberId || !selectedMember) {
-        throw new Error("Please select a member");
-      }
-
-      return apiRequest("POST", "/api/comments", {
-        memberId: selectedMemberId,
-        memberName: selectedMember.name,
-        date,
-        comment,
-      });
-    },
-    onSuccess: () => {
-      setNewComment("");
-      // Invalidate queries without causing re-render during typing
-      queryClient.invalidateQueries({ queryKey: ["/api/comments", date] });
-      toast({
-        title: "Comment added",
-        description: "Your comment has been posted successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to add comment",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-    addCommentMutation.mutate(newComment.trim());
-  }, [newComment, addCommentMutation]);
-
-  const handleTextareaChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNewComment(e.target.value);
-  }, []);
-
-  // Memoize the comment form to prevent re-renders during typing
-  const CommentForm = memo(() => (
-    selectedMemberId ? (
-      <form onSubmit={handleSubmit} className="space-y-2">
-        <Textarea
-          value={newComment}
-          onChange={handleTextareaChange}
-          placeholder="Add a comment about this day..."
-          className="text-sm"
-          rows={2}
-          data-testid={`textarea-comment-${date}`}
-          autoComplete="off"
-        />
-        <Button
-          type="submit"
-          size="sm"
-          disabled={!newComment.trim() || addCommentMutation.isPending}
-          className="bg-blue-100 text-blue-700 hover:bg-blue-200"
-          data-testid={`button-add-comment-${date}`}
-        >
-          {addCommentMutation.isPending ? "Adding..." : "Add Comment"}
-        </Button>
-      </form>
-    ) : (
-      <p className="text-sm text-gray-500 italic">Select a member to add comments</p>
-    )
-  ));
 
   const CommentsDisplay = ({ inDialog = false }: { inDialog?: boolean }) => (
     <div className={inDialog ? "" : "mt-4 pt-4 border-t border-gray-200"}>
@@ -118,8 +40,8 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
         <p className="text-sm text-gray-400 italic mb-3">No comments yet</p>
       )}
 
-      {/* Add new comment - memoized to prevent re-renders */}
-      <CommentForm />
+      {/* Add new comment */}
+      <CommentTextarea date={date} />
     </div>
   );
 
