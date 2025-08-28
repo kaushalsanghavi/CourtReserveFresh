@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect, memo } from "react";
-import { Textarea } from "@/components/ui/textarea";
+import { useRef, useEffect } from "react";
 
 interface IsolatedTextareaProps {
   value: string;
@@ -10,8 +9,8 @@ interface IsolatedTextareaProps {
   'data-testid'?: string;
 }
 
-// Memoized textarea component to prevent unnecessary re-renders
-const IsolatedTextarea = memo(function IsolatedTextarea({ 
+// Raw DOM textarea to completely bypass React's re-render cycle
+export default function IsolatedTextarea({ 
   value, 
   onChange, 
   placeholder, 
@@ -20,33 +19,34 @@ const IsolatedTextarea = memo(function IsolatedTextarea({
   'data-testid': testId 
 }: IsolatedTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastValueRef = useRef(value);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(e.target.value);
-  };
-
-  // Focus preservation - prevent re-render from affecting focused element
   useEffect(() => {
-    if (textareaRef.current && document.activeElement === textareaRef.current) {
-      const start = textareaRef.current.selectionStart;
-      const end = textareaRef.current.selectionEnd;
-      
-      // Restore cursor position after value change
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.setSelectionRange(start, end);
-        }
-      });
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Only update DOM value if it's different and textarea is not focused
+    if (value !== lastValueRef.current && document.activeElement !== textarea) {
+      textarea.value = value;
+      lastValueRef.current = value;
     }
-  }, [value]);
+
+    const handleInput = (e: Event) => {
+      const target = e.target as HTMLTextAreaElement;
+      lastValueRef.current = target.value;
+      onChange(target.value);
+    };
+
+    textarea.addEventListener('input', handleInput);
+    return () => textarea.removeEventListener('input', handleInput);
+  }, [value, onChange]);
 
   return (
-    <Textarea
+    <textarea
       ref={textareaRef}
-      value={value}
-      onChange={handleChange}
+      defaultValue={value}
       placeholder={placeholder}
-      className={className}
+      className={`flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       rows={rows}
       data-testid={testId}
       autoComplete="off"
@@ -55,6 +55,4 @@ const IsolatedTextarea = memo(function IsolatedTextarea({
       autoCapitalize="off"
     />
   );
-});
-
-export default IsolatedTextarea;
+}
