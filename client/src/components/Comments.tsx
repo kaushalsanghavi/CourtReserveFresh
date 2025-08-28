@@ -1,12 +1,12 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useSelectedMember } from "./QuickBooking";
+import IsolatedTextarea from "./IsolatedTextarea";
 import type { Comment } from "@shared/schema";
 import { format } from "date-fns";
 import { MessageCircle } from "lucide-react";
@@ -21,7 +21,6 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { selectedMemberId, selectedMember } = useSelectedMember();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: comments = [] } = useQuery<Comment[]>({
     queryKey: ["/api/comments", date],
@@ -63,8 +62,8 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
     addCommentMutation.mutate(newComment.trim());
   }, [newComment, addCommentMutation]);
 
-  const handleTextareaChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNewComment(e.target.value);
+  const handleTextareaChange = useCallback((value: string) => {
+    setNewComment(value);
   }, []);
 
   const CommentsDisplay = ({ inDialog = false }: { inDialog?: boolean }) => (
@@ -93,16 +92,13 @@ export default function Comments({ date, variant = 'modal' }: CommentsProps) {
       {/* Add new comment */}
       {selectedMemberId ? (
         <form onSubmit={handleSubmit} className="space-y-2">
-          <Textarea
-            ref={textareaRef}
+          <IsolatedTextarea
             value={newComment}
             onChange={handleTextareaChange}
             placeholder="Add a comment about this day..."
             className="text-sm"
             rows={2}
             data-testid={`textarea-comment-${date}`}
-            autoComplete="off"
-            spellCheck={false}
           />
           <Button
             type="submit"
