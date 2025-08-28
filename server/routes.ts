@@ -132,6 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create the booking
       const booking = await storage.createBooking({
+        id: crypto.randomUUID(),
         memberId,
         memberName,
         date,

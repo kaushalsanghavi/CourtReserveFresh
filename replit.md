@@ -8,7 +8,19 @@ A full-stack badminton court booking application built with modern web technolog
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Aug 27, 2025)
+## Recent Changes (Aug 28, 2025)
+
+- ✅ **CRITICAL PRODUCTION BUG FIXED** - Resolved booking creation failure in production
+  - **Issue**: Booking route wasn't generating UUIDs, causing "undefined" IDs and database constraint violations
+  - **Fix**: Added `crypto.randomUUID()` ID generation to booking creation route
+  - **Database Cleanup**: Removed corrupted booking record with undefined ID from production
+  - **Verification**: New bookings now create successfully with proper UUIDs
+- ✅ **Comment Focus Issue Resolved** - Fixed textarea losing focus while typing
+  - **Solution**: Added `spellCheck={false}` and `autoComplete="off"` to prevent browser interference
+  - **UI Preserved**: Maintained exact approved Comments interface design
+- ✅ **Production Deployment Ready** - All fixes tested and validated in development
+
+## Previous Changes (Aug 27, 2025)
 
 - ✅ **TRUE DATABASE SEPARATION ACHIEVED** - Implemented schema-based separation within single PostgreSQL instance
   - **Production Schema**: Contains all real data (10 members, 26 bookings through Aug 27, 32 activities)
