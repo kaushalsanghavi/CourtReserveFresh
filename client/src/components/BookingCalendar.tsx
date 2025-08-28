@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useSelectedMember } from "./QuickBooking";
-import Comments from "./Comments";
+import CommentsAlternative from "./CommentsAlternative";
 import type { Member, Booking, Comment } from "@shared/schema";
 import { format, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, setHours, setMinutes } from "date-fns";
 
@@ -141,7 +141,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
         {getButtonText()}
       </Button>
       
-      <Comments date={dateStr} variant="compact" />
+      <CommentsAlternative date={dateStr} variant="popover" />
     </div>
   );
 }
