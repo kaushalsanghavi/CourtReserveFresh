@@ -159,9 +159,10 @@ export class DatabaseStorage implements IStorage {
 
   async createMember(member: InsertMember): Promise<Member> {
     try {
+      const memberId = crypto.randomUUID();
       const result = await db.execute(
         sql.raw(`INSERT INTO ${getCurrentSchema()}.members (id, name, initials, avatar_color, created_at) 
-                 VALUES ('${member.id}', '${member.name}', '${member.initials}', '${member.avatarColor}', NOW()) 
+                 VALUES ('${memberId}', '${member.name}', '${member.initials}', '${member.avatarColor}', NOW()) 
                  RETURNING id, name, initials, avatar_color, created_at`)
       );
       const row = result.rows[0];
@@ -235,9 +236,10 @@ export class DatabaseStorage implements IStorage {
 
   async createBooking(booking: InsertBooking): Promise<Booking> {
     try {
+      const bookingId = crypto.randomUUID();
       const result = await db.execute(
         sql.raw(`INSERT INTO ${getCurrentSchema()}.bookings (id, member_id, member_name, date, created_at) 
-                 VALUES ('${booking.id}', '${booking.memberId}', '${booking.memberName}', '${booking.date}', NOW()) 
+                 VALUES ('${bookingId}', '${booking.memberId}', '${booking.memberName}', '${booking.date}', NOW()) 
                  RETURNING id, member_id, member_name, date, created_at`)
       );
       const row = result.rows[0];
@@ -290,9 +292,10 @@ export class DatabaseStorage implements IStorage {
 
   async createActivity(activity: InsertActivity): Promise<Activity> {
     try {
+      const activityId = crypto.randomUUID();
       const result = await db.execute(
         sql.raw(`INSERT INTO ${getCurrentSchema()}.activities (id, member_id, member_name, action, date, device_info, created_at) 
-                 VALUES ('${activity.id}', '${activity.memberId}', '${activity.memberName}', '${activity.action}', '${activity.date}', '${activity.deviceInfo}', NOW()) 
+                 VALUES ('${activityId}', '${activity.memberId}', '${activity.memberName}', '${activity.action}', '${activity.date}', '${activity.deviceInfo}', NOW()) 
                  RETURNING id, member_id, member_name, action, date, device_info, created_at`)
       );
       const row = result.rows[0];
@@ -333,7 +336,7 @@ export class DatabaseStorage implements IStorage {
   async getCommentsByDate(date: string): Promise<Comment[]> {
     try {
       const result = await db.execute(
-        sql.raw(`SELECT id, member_id, member_name, date, comment, created_at FROM ${getCurrentSchema()}.comments WHERE date = $1 ORDER BY created_at DESC`, [date])
+        sql.raw(`SELECT id, member_id, member_name, date, comment, created_at FROM ${getCurrentSchema()}.comments WHERE date = '${date}' ORDER BY created_at DESC`)
       );
       const comments = result.rows.map(row => ({
         id: row.id as string,
@@ -352,11 +355,12 @@ export class DatabaseStorage implements IStorage {
 
   async createComment(comment: InsertComment): Promise<Comment> {
     try {
+      const commentId = comment.id || crypto.randomUUID();
+      const escapedComment = comment.comment.replace(/'/g, "''");
       const result = await db.execute(
         sql.raw(`INSERT INTO ${getCurrentSchema()}.comments (id, member_id, member_name, date, comment, created_at) 
-                 VALUES ($1, $2, $3, $4, $5, NOW()) 
-                 RETURNING id, member_id, member_name, date, comment, created_at`, 
-                 [comment.id, comment.memberId, comment.memberName, comment.date, comment.comment])
+                 VALUES ('${commentId}', '${comment.memberId}', '${comment.memberName}', '${comment.date}', '${escapedComment}', NOW()) 
+                 RETURNING id, member_id, member_name, date, comment, created_at`)
       );
       const row = result.rows[0];
       return {
