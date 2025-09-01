@@ -15,11 +15,11 @@ Preferred communication style: Simple, everyday language.
   - **Fix**: Added `crypto.randomUUID()` ID generation to booking creation route
   - **Database Cleanup**: Removed corrupted booking record with undefined ID from production
   - **Verification**: New bookings now create successfully with proper UUIDs
-- ✅ **Comment Focus Issue Resolved** - Fixed textarea losing focus while typing
-  - **Root Cause**: Complex component re-rendering cycle with isolated textarea
-  - **Solution**: Simplified to direct Textarea with all browser interference prevention
-  - **Fix Applied**: spellCheck={false}, autoComplete="off", autoCorrect="off", autoCapitalize="off", suppressContentEditableWarning
-  - **UI Preserved**: Maintained exact approved Comments interface design
+- ✅ **Comment Focus Issue Resolved** - Implemented alternative non-inline comment UI
+  - **Root Cause**: Inline textarea focus loss during React re-rendering cycles
+  - **Solution**: Side panel (sheet) UI that opens in separate layer, avoiding inline interference
+  - **Features**: Larger textarea with autoFocus, dedicated comment space, improved UX
+  - **UI Enhancement**: Clean side panel with proper spacing and professional styling
 - ✅ **Production Deployment Ready** - All fixes tested and validated in development
 
 ## Previous Changes (Aug 27, 2025)
