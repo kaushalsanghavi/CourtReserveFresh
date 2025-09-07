@@ -4,6 +4,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useSelectedMember } from "./QuickBooking";
 import CommentsAlternative from "./CommentsAlternative";
+import BookingHistory from "./BookingHistory";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { History } from "lucide-react";
 import type { Member, Booking, Comment } from "@shared/schema";
 import { format, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, setHours, setMinutes } from "date-fns";
 
@@ -141,7 +144,26 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
         {getButtonText()}
       </Button>
       
-      <CommentsAlternative date={dateStr} variant="sheet" />
+      <div className="mt-3 flex gap-2">
+        <CommentsAlternative date={dateStr} variant="sheet" />
+        
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 flex items-center gap-2 text-xs"
+              data-testid={`booking-history-btn-${dateStr}`}
+            >
+              <History className="w-3 h-3" />
+              History
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[90vw] sm:w-[540px] overflow-y-auto">
+            <BookingHistory date={dateStr} />
+          </SheetContent>
+        </Sheet>
+      </div>
     </div>
   );
 }
