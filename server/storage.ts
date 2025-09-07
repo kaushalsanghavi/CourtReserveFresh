@@ -26,6 +26,7 @@ export interface IStorage {
   
   // Activities
   getActivities(): Promise<Activity[]>;
+  getActivitiesByDate(date: string): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
   
   // Comments
@@ -290,6 +291,28 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getActivitiesByDate(date: string): Promise<Activity[]> {
+    try {
+      const result = await db.execute(
+        sql.raw(`SELECT id, member_id, member_name, action, date, device_info, created_at FROM ${getCurrentSchema()}.activities WHERE date = '${date}' ORDER BY created_at ASC`)
+      );
+      const activities = result.rows.map(row => ({
+        id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
+        action: row.action as string,
+        date: row.date as string,
+        deviceInfo: row.device_info as string,
+        createdAt: new Date(row.created_at as string)
+      }));
+      console.log('Activities by date result:', { ok: true, value: activities, date });
+      return activities;
+    } catch (error) {
+      console.error('Error getting activities by date:', error);
+      return [];
+    }
+  }
+
   async createActivity(activity: InsertActivity): Promise<Activity> {
     try {
       const activityId = crypto.randomUUID();
@@ -355,7 +378,7 @@ export class DatabaseStorage implements IStorage {
 
   async createComment(comment: InsertComment): Promise<Comment> {
     try {
-      const commentId = comment.id || crypto.randomUUID();
+      const commentId = crypto.randomUUID();
       const escapedComment = comment.comment.replace(/'/g, "''");
       const result = await db.execute(
         sql.raw(`INSERT INTO ${getCurrentSchema()}.comments (id, member_id, member_name, date, comment, created_at) 

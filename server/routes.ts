@@ -132,7 +132,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create the booking
       const booking = await storage.createBooking({
-        id: crypto.randomUUID(),
         memberId,
         memberName,
         date,
@@ -141,7 +140,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log the activity
       const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
       await storage.createActivity({
-        id: crypto.randomUUID(),
         memberId,
         memberName,
         action: "booked a slot for",
@@ -177,7 +175,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log the activity
       const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
       await storage.createActivity({
-        id: crypto.randomUUID(),
         memberId,
         memberName,
         action: "cancelled a slot for",
@@ -198,6 +195,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(activities);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  // Get activities for a specific date
+  app.get("/api/activities/:date", async (req, res) => {
+    try {
+      const { date } = req.params;
+      const activities = await storage.getActivitiesByDate(date);
+      res.json(activities);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch activities for date" });
     }
   });
 
@@ -230,7 +238,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create the comment
       const newComment = await storage.createComment({
-        id: crypto.randomUUID(),
         memberId,
         memberName,
         date,
