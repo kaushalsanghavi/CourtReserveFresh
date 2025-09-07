@@ -156,7 +156,8 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
               data-testid={`booking-history-btn-${dateStr}`}
             >
               <History className="w-3 h-3" />
-              History
+              {/* Icon only */}
+              
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-[90vw] sm:w-[540px] overflow-y-auto">
