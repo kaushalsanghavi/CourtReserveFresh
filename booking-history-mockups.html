@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking History Display Options</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="max-w-6xl mx-auto space-y-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Booking History Display Options</h1>
+        
+        <!-- Option 1: Enhanced Timeline View -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">1. Enhanced Timeline View</h2>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center gap-2 mb-2">
+                    <i data-lucide="calendar" class="w-5 h-5 text-gray-600"></i>
+                    <h3 class="text-lg font-medium text-gray-900">Booking History for Mon, Jan 8, 2025</h3>
+                </div>
+                
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">4</div>
+                        <div class="text-xs text-gray-500">Total Bookings</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-red-600">1</div>
+                        <div class="text-xs text-gray-500">Cancellations</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600">9:15 AM</div>
+                        <div class="text-xs text-gray-500">Peak Activity</div>
+                    </div>
+                </div>
+
+                <!-- Time Period Groups -->
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
+                            <i data-lucide="sunrise" class="w-4 h-4"></i>
+                            Morning (6:00 AM - 12:00 PM)
+                        </h4>
+                        <div class="space-y-3 ml-6">
+                            <div class="flex items-start gap-4 p-3 rounded-lg bg-green-50 border border-green-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                        <span class="text-lg">JS</span>
+                                    </div>
+                                    <div class="w-0.5 h-6 bg-gray-300 mt-2"></div>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <i data-lucide="user-check" class="w-4 h-4 text-green-600"></i>
+                                        <span class="font-medium text-green-900">John Smith</span>
+                                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">Current Booking</span>
+                                    </div>
+                                    <p class="text-sm text-gray-700 mb-2">booked a slot for 2025-01-08</p>
+                                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                                        <div class="flex items-center gap-1">
+                                            <i data-lucide="clock" class="w-3 h-3"></i>
+                                            <span>9:15:23 AM</span>
+                                        </div>
+                                        <span>iPhone Safari</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 2: Tabbed View -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">2. Tabbed View</h2>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <i data-lucide="calendar" class="w-5 h-5 text-gray-600"></i>
+                    <h3 class="text-lg font-medium text-gray-900">Booking History for Mon, Jan 8, 2025</h3>
+                </div>
+                
+                <!-- Tabs -->
+                <div class="border-b border-gray-200 mb-6">
+                    <nav class="-mb-px flex space-x-8">
+                        <button class="border-b-2 border-blue-500 py-2 px-1 text-sm font-medium text-blue-600">Summary</button>
+                        <button class="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">Timeline</button>
+                        <button class="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">Members</button>
+                        <button class="border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">Analytics</button>
+                    </nav>
+                </div>
+
+                <!-- Summary Tab Content -->
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                            <h4 class="font-medium text-green-900 mb-2">Current Bookings (4)</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs text-white font-medium">JS</div>
+                                    <span class="text-sm text-green-800">John Smith</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-xs text-white font-medium">MD</div>
+                                    <span class="text-sm text-green-800">Mike Davis</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <h4 class="font-medium text-gray-900 mb-2">Recent Activity</h4>
+                            <div class="text-sm text-gray-600">
+                                <p>Last booking: 9:15 AM</p>
+                                <p>Total actions: 5</p>
+                                <p>Busiest hour: 9:00-10:00 AM</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 3: Compact List View -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">3. Compact List View</h2>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-5 h-5 text-gray-600"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Booking History for Mon, Jan 8, 2025</h3>
+                    </div>
+                    <div class="flex gap-2">
+                        <select class="text-sm border border-gray-300 rounded px-2 py-1">
+                            <option>All Actions</option>
+                            <option>Bookings Only</option>
+                            <option>Cancellations Only</option>
+                        </select>
+                        <button class="text-sm px-3 py-1 bg-gray-100 rounded hover:bg-gray-200">
+                            <i data-lucide="filter" class="w-3 h-3 inline mr-1"></i>
+                            Filter
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Table Header -->
+                <div class="grid grid-cols-4 gap-4 py-2 px-3 bg-gray-50 rounded-t-lg border-b text-sm font-medium text-gray-500">
+                    <div class="flex items-center gap-1 cursor-pointer hover:text-gray-700">
+                        Time <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                    </div>
+                    <div class="flex items-center gap-1 cursor-pointer hover:text-gray-700">
+                        Member <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                    </div>
+                    <div>Action</div>
+                    <div>Device</div>
+                </div>
+                
+                <!-- Table Rows -->
+                <div class="space-y-1">
+                    <div class="grid grid-cols-4 gap-4 py-3 px-3 hover:bg-gray-50 border-b border-gray-100">
+                        <div class="text-sm text-gray-900">9:15:23 AM</div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs text-white font-medium">JS</div>
+                            <span class="text-sm font-medium">John Smith</span>
+                            <span class="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">Active</span>
+                        </div>
+                        <div class="flex items-center gap-1 text-sm">
+                            <i data-lucide="user-check" class="w-3 h-3 text-green-600"></i>
+                            <span class="text-green-700">Booked</span>
+                        </div>
+                        <div class="text-sm text-gray-500">iPhone Safari</div>
+                    </div>
+                    <div class="grid grid-cols-4 gap-4 py-3 px-3 hover:bg-gray-50 border-b border-gray-100">
+                        <div class="text-sm text-gray-900">8:45:12 AM</div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center text-xs text-white font-medium">AL</div>
+                            <span class="text-sm font-medium">Alice Lee</span>
+                        </div>
+                        <div class="flex items-center gap-1 text-sm">
+                            <i data-lucide="user-x" class="w-3 h-3 text-red-600"></i>
+                            <span class="text-red-700">Cancelled</span>
+                        </div>
+                        <div class="text-sm text-gray-500">Chrome Desktop</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 4: Card-Based Grid -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">4. Card-Based Grid</h2>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center gap-2 mb-6">
+                    <i data-lucide="calendar" class="w-5 h-5 text-gray-600"></i>
+                    <h3 class="text-lg font-medium text-gray-900">Booking History for Mon, Jan 8, 2025</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Booking Card -->
+                    <div class="p-4 rounded-lg border-2 border-green-200 bg-green-50 hover:shadow-md transition-shadow cursor-pointer">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-medium">JS</div>
+                            <div>
+                                <div class="font-medium text-green-900">John Smith</div>
+                                <div class="text-sm text-green-700">9:15:23 AM</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="user-check" class="w-4 h-4 text-green-600"></i>
+                            <span class="text-sm font-medium text-green-800">Booked Slot</span>
+                        </div>
+                        <div class="text-xs text-green-600">iPhone Safari</div>
+                        <div class="mt-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full inline-block">Current Booking</div>
+                    </div>
+                    
+                    <!-- Cancellation Card -->
+                    <div class="p-4 rounded-lg border-2 border-red-200 bg-red-50 hover:shadow-md transition-shadow cursor-pointer">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-medium">AL</div>
+                            <div>
+                                <div class="font-medium text-red-900">Alice Lee</div>
+                                <div class="text-sm text-red-700">8:45:12 AM</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="user-x" class="w-4 h-4 text-red-600"></i>
+                            <span class="text-sm font-medium text-red-800">Cancelled Booking</span>
+                        </div>
+                        <div class="text-xs text-red-600">Chrome Desktop</div>
+                    </div>
+                    
+                    <!-- Another Booking Card -->
+                    <div class="p-4 rounded-lg border-2 border-blue-200 bg-blue-50 hover:shadow-md transition-shadow cursor-pointer">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">MD</div>
+                            <div>
+                                <div class="font-medium text-blue-900">Mike Davis</div>
+                                <div class="text-sm text-blue-700">8:30:45 AM</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="user-check" class="w-4 h-4 text-blue-600"></i>
+                            <span class="text-sm font-medium text-blue-800">Booked Slot</span>
+                        </div>
+                        <div class="text-xs text-blue-600">Android Chrome</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 5: Interactive Dashboard -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">5. Interactive Dashboard</h2>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-5 h-5 text-gray-600"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Booking Dashboard for Mon, Jan 8, 2025</h3>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm text-gray-600">Live Updates</span>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Activity Heatmap -->
+                    <div class="lg:col-span-2">
+                        <h4 class="font-medium text-gray-900 mb-3">Activity Heatmap</h4>
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                                <span>6 AM</span>
+                                <span>12 PM</span>
+                                <span>6 PM</span>
+                            </div>
+                            <div class="flex gap-1">
+                                <div class="flex-1 h-8 bg-gray-200 rounded"></div>
+                                <div class="flex-1 h-8 bg-green-300 rounded"></div>
+                                <div class="flex-1 h-8 bg-green-500 rounded"></div>
+                                <div class="flex-1 h-8 bg-green-300 rounded"></div>
+                                <div class="flex-1 h-8 bg-gray-200 rounded"></div>
+                                <div class="flex-1 h-8 bg-gray-200 rounded"></div>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-2">Peak: 9:00-10:00 AM (3 activities)</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Member Activity Chart -->
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-3">Top Members</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm font-medium">JS</div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium">John Smith</div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-green-500 h-2 rounded-full" style="width: 80%"></div>
+                                    </div>
+                                </div>
+                                <span class="text-sm text-gray-500">4</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">MD</div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium">Mike Davis</div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-blue-500 h-2 rounded-full" style="width: 60%"></div>
+                                    </div>
+                                </div>
+                                <span class="text-sm text-gray-500">3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Live Activity Feed -->
+                <div class="mt-6">
+                    <h4 class="font-medium text-gray-900 mb-3">Live Activity Feed</h4>
+                    <div class="space-y-2 max-h-32 overflow-y-auto">
+                        <div class="flex items-center gap-3 p-2 bg-green-50 rounded text-sm">
+                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span><strong>John Smith</strong> booked a slot</span>
+                            <span class="text-gray-500 ml-auto">just now</span>
+                        </div>
+                        <div class="flex items-center gap-3 p-2 bg-red-50 rounded text-sm">
+                            <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span><strong>Alice Lee</strong> cancelled booking</span>
+                            <span class="text-gray-500 ml-auto">2 min ago</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 6: Minimalist Summary -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">6. Minimalist Summary</h2>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-5 h-5 text-gray-600"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Mon, Jan 8, 2025</h3>
+                    </div>
+                    <button class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                        <span>View Full History</span>
+                        <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                    </button>
+                </div>
+                
+                <!-- Current Bookings -->
+                <div class="mb-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Current Bookings (4/6)</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">John Smith</span>
+                        <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">Mike Davis</span>
+                        <span class="px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full">Sarah Wilson</span>
+                        <span class="px-3 py-1 bg-orange-100 text-orange-800 text-sm rounded-full">Tom Brown</span>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity Summary -->
+                <div class="border-t pt-4">
+                    <button class="w-full text-left hover:bg-gray-50 p-2 rounded transition-colors">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm font-medium">JS</div>
+                                <div>
+                                    <div class="text-sm font-medium">John Smith booked a slot</div>
+                                    <div class="text-xs text-gray-500">9:15 AM • iPhone Safari</div>
+                                </div>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
+                        </div>
+                    </button>
+                    
+                    <button class="w-full text-left hover:bg-gray-50 p-2 rounded transition-colors">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-medium">AL</div>
+                                <div>
+                                    <div class="text-sm font-medium">Alice Lee cancelled booking</div>
+                                    <div class="text-xs text-gray-500">8:45 AM • Chrome Desktop</div>
+                                </div>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
+                        </div>
+                    </button>
+                    
+                    <div class="text-center mt-3">
+                        <button class="text-sm text-gray-500 hover:text-gray-700">Show 3 more activities...</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 7: Mobile-First Swipe View -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">7. Mobile-First Swipe View</h2>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-sm mx-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-5 h-5 text-gray-600"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Jan 8</h3>
+                    </div>
+                    <div class="flex gap-1">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    </div>
+                </div>
+                
+                <!-- Swipe indicator -->
+                <div class="text-center text-xs text-gray-400 mb-4">
+                    <i data-lucide="chevron-left" class="w-3 h-3 inline mr-1"></i>
+                    Swipe for more views
+                    <i data-lucide="chevron-right" class="w-3 h-3 inline ml-1"></i>
+                </div>
+                
+                <!-- Current View: Summary -->
+                <div class="space-y-4">
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-2xl font-bold text-green-600 mb-1">4</div>
+                        <div class="text-sm text-green-800">Current Bookings</div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-medium">JS</div>
+                            <div class="flex-1">
+                                <div class="font-medium">John Smith</div>
+                                <div class="text-sm text-gray-500">Booked at 9:15 AM</div>
+                            </div>
+                            <i data-lucide="user-check" class="w-4 h-4 text-green-600"></i>
+                        </div>
+                        
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">MD</div>
+                            <div class="flex-1">
+                                <div class="font-medium">Mike Davis</div>
+                                <div class="text-sm text-gray-500">Booked at 8:30 AM</div>
+                            </div>
+                            <i data-lucide="user-check" class="w-4 h-4 text-blue-600"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Pull to refresh indicator -->
+                    <div class="text-center py-2">
+                        <div class="inline-flex items-center gap-2 text-xs text-gray-400">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                            Pull to refresh
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
