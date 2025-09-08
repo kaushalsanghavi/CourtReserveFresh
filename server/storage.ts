@@ -49,8 +49,17 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  constructor() {
-    this.initializeData();
+  private initializationAttempted = false;
+  constructor() {}
+
+  /**
+   * Ensure seed/setup runs at most once per cold start.
+   * Call this from request handlers instead of constructor/global scope.
+   */
+  async ensureInitialized(): Promise<void> {
+    if (this.initializationAttempted) return;
+    this.initializationAttempted = true;
+    await this.initializeData();
   }
 
   private async initializeData() {
@@ -181,7 +190,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(
         sql.raw(`SELECT id, name, initials, avatar_color, created_at FROM ${getCurrentSchema()}.members ORDER BY created_at`)
       );
-      const members = result.rows.map(row => ({
+      const members = result.rows.map((row: any) => ({
         id: row.id as string,
         name: row.name as string,
         initials: row.initials as string,
@@ -204,7 +213,7 @@ export class DatabaseStorage implements IStorage {
                  VALUES ('${memberId}', '${member.name}', '${member.initials}', '${member.avatarColor}', NOW()) 
                  RETURNING id, name, initials, avatar_color, created_at`)
       );
-      const row = result.rows[0];
+      const row: any = result.rows[0];
       return {
         id: row.id as string,
         name: row.name as string,
@@ -223,7 +232,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(
         sql.raw(`SELECT id, member_id, member_name, date, created_at FROM ${getCurrentSchema()}.bookings ORDER BY created_at DESC`)
       );
-      const bookings = result.rows.map(row => ({
+      const bookings = result.rows.map((row: any) => ({
         id: row.id as string,
         memberId: row.member_id as string,
         memberName: row.member_name as string,
@@ -242,7 +251,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(
         sql.raw(`SELECT id, member_id, member_name, date, created_at FROM ${getCurrentSchema()}.bookings WHERE date = '${date}' ORDER BY created_at DESC`)
       );
-      return result.rows.map(row => ({
+      return result.rows.map((row: any) => ({
         id: row.id as string,
         memberId: row.member_id as string,
         memberName: row.member_name as string,
@@ -260,7 +269,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(
         sql.raw(`SELECT id, member_id, member_name, date, created_at FROM ${getCurrentSchema()}.bookings WHERE member_id = '${memberId}' ORDER BY created_at DESC`)
       );
-      return result.rows.map(row => ({
+      return result.rows.map((row: any) => ({
         id: row.id as string,
         memberId: row.member_id as string,
         memberName: row.member_name as string,
@@ -281,7 +290,7 @@ export class DatabaseStorage implements IStorage {
                  VALUES ('${bookingId}', '${booking.memberId}', '${booking.memberName}', '${booking.date}', NOW()) 
                  RETURNING id, member_id, member_name, date, created_at`)
       );
-      const row = result.rows[0];
+      const row: any = result.rows[0];
       return {
         id: row.id as string,
         memberId: row.member_id as string,
@@ -312,7 +321,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(
         sql.raw(`SELECT id, member_id, member_name, action, date, device_info, created_at FROM ${getCurrentSchema()}.activities ORDER BY created_at DESC`)
       );
-      const activities = result.rows.map(row => ({
+      const activities = result.rows.map((row: any) => ({
         id: row.id as string,
         memberId: row.member_id as string,
         memberName: row.member_name as string,
@@ -334,7 +343,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(
         sql.raw(`SELECT id, member_id, member_name, action, date, device_info, created_at FROM ${getCurrentSchema()}.activities WHERE date = '${date}' ORDER BY created_at ASC`)
       );
-      const activities = result.rows.map(row => ({
+      const activities = result.rows.map((row: any) => ({
         id: row.id as string,
         memberId: row.member_id as string,
         memberName: row.member_name as string,
@@ -380,7 +389,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(
         sql.raw(`SELECT id, member_id, member_name, date, comment, created_at FROM ${getCurrentSchema()}.comments ORDER BY created_at DESC`)
       );
-      return result.rows.map(row => ({
+      return result.rows.map((row: any) => ({
         id: row.id as string,
         memberId: row.member_id as string,
         memberName: row.member_name as string,
@@ -399,7 +408,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(
         sql.raw(`SELECT id, member_id, member_name, date, comment, created_at FROM ${getCurrentSchema()}.comments WHERE date = '${date}' ORDER BY created_at DESC`)
       );
-      const comments = result.rows.map(row => ({
+      const comments = result.rows.map((row: any) => ({
         id: row.id as string,
         memberId: row.member_id as string,
         memberName: row.member_name as string,
@@ -423,7 +432,7 @@ export class DatabaseStorage implements IStorage {
                  VALUES ('${commentId}', '${comment.memberId}', '${comment.memberName}', '${comment.date}', '${escapedComment}', NOW()) 
                  RETURNING id, member_id, member_name, date, comment, created_at`)
       );
-      const row = result.rows[0];
+      const row: any = result.rows[0];
       return {
         id: row.id as string,
         memberId: row.member_id as string,

@@ -1,5 +1,13 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": [
+        "server/**",
+        "shared/**"
+      ]
+    }
+  },
   "builds": [
     { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist/public" } },
     { "src": "api/**", "use": "@vercel/node" }
