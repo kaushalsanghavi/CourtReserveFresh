@@ -1,15 +1,24 @@
 import express from "express";
-import { registerRoutes } from "../server/routes";
 
 // Create a single Express instance and reuse between invocations
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 let initialized = false;
+let registerRoutesFn: any = null;
 
 async function ensureInitialized() {
   if (initialized) return;
-  const server = await registerRoutes(app);
+  if (!registerRoutesFn) {
+    try {
+      // Prefer the pre-bundled file on Vercel
+      registerRoutesFn = (await import("../api_build/routes.js")).registerRoutes;
+    } catch (_err) {
+      // Fallback for local/dev environments
+      registerRoutesFn = (await import("../server/routes" as any)).registerRoutes;
+    }
+  }
+  const server = await registerRoutesFn(app);
   server.on("request", () => {});
   initialized = true;
 }
