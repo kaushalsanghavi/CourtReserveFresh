@@ -2,10 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.ts": {
-      "includeFiles": [
-        "server/**",
-        "shared/**"
-      ]
+      "includeFiles": "api/routes.js"
     }
   },
   "builds": [
