@@ -12,6 +12,19 @@ import type {
   InsertComment 
 } from "@shared/schema";
 
+function generateUuid(): string {
+  const g: any = (globalThis as any);
+  if (g.crypto && typeof g.crypto.randomUUID === 'function') {
+    return g.crypto.randomUUID();
+  }
+  // Fallback RFC4122-ish generator (non-crypto)
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export interface IStorage {
   // Members
   getMembers(): Promise<Member[]>;
@@ -66,16 +79,17 @@ export class DatabaseStorage implements IStorage {
         // Insert members and get their IDs
         const createdMembers: Member[] = [];
         for (const member of defaultMembers) {
-          if (isProduction) {
-            // In production we use Neon serverless which doesn't set search_path.
-            // Use fully-qualified schema to ensure inserts go to the right place.
+          const schemaName = getCurrentSchema();
+          // For Neon/Vercel we use public schema; avoid relying on pgcrypto by generating ids here
+          if (schemaName === 'public') {
             const escapedName = member.name.replace(/'/g, "''");
             const escapedInitials = member.initials.replace(/'/g, "''");
             const escapedColor = member.avatarColor.replace(/'/g, "''");
+            const generatedId = generateUuid();
             const result = await db.execute(
               sql.raw(
-                `INSERT INTO ${getCurrentSchema()}.members (name, initials, avatar_color, created_at)
-                 VALUES ('${escapedName}', '${escapedInitials}', '${escapedColor}', NOW())
+                `INSERT INTO public.members (id, name, initials, avatar_color, created_at)
+                 VALUES ('${generatedId}', '${escapedName}', '${escapedInitials}', '${escapedColor}', NOW())
                  RETURNING id, name, initials, avatar_color, created_at`,
               ),
             );
@@ -88,6 +102,7 @@ export class DatabaseStorage implements IStorage {
               createdAt: new Date(row.created_at as string),
             });
           } else {
+            // Non-public schemas (like development) can rely on drizzle insert
             const [newMember] = await db.insert(members).values(member).returning();
             createdMembers.push(newMember);
           }

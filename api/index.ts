@@ -11,8 +11,8 @@ async function ensureInitialized() {
   if (initialized) return;
   if (!registerRoutesFn) {
     try {
-      // Prefer the pre-bundled file on Vercel
-      registerRoutesFn = (await import("../api_build/routes.js")).registerRoutes;
+      // Prefer the pre-bundled file on Vercel (generated during vercel-build)
+      registerRoutesFn = (await import("./routes.js" as any)).registerRoutes;
     } catch (_err) {
       // Fallback for local/dev environments
       registerRoutesFn = (await import("../server/routes" as any)).registerRoutes;
