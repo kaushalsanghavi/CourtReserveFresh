@@ -66,8 +66,31 @@ export class DatabaseStorage implements IStorage {
         // Insert members and get their IDs
         const createdMembers: Member[] = [];
         for (const member of defaultMembers) {
-          const [newMember] = await db.insert(members).values(member).returning();
-          createdMembers.push(newMember);
+          if (isProduction) {
+            // In production we use Neon serverless which doesn't set search_path.
+            // Use fully-qualified schema to ensure inserts go to the right place.
+            const escapedName = member.name.replace(/'/g, "''");
+            const escapedInitials = member.initials.replace(/'/g, "''");
+            const escapedColor = member.avatarColor.replace(/'/g, "''");
+            const result = await db.execute(
+              sql.raw(
+                `INSERT INTO ${getCurrentSchema()}.members (name, initials, avatar_color, created_at)
+                 VALUES ('${escapedName}', '${escapedInitials}', '${escapedColor}', NOW())
+                 RETURNING id, name, initials, avatar_color, created_at`,
+              ),
+            );
+            const row = result.rows[0];
+            createdMembers.push({
+              id: row.id as string,
+              name: row.name as string,
+              initials: row.initials as string,
+              avatarColor: row.avatar_color as string,
+              createdAt: new Date(row.created_at as string),
+            });
+          } else {
+            const [newMember] = await db.insert(members).values(member).returning();
+            createdMembers.push(newMember);
+          }
         }
 
         // Only add sample data in development environment
