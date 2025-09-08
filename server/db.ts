@@ -17,11 +17,19 @@ const isProduction =
 
 // Dynamic schema detection for use in queries
 export function getCurrentSchema(): string {
+  // Allow overriding explicitly
+  if (process.env.DATABASE_SCHEMA && process.env.DATABASE_SCHEMA.trim().length > 0) {
+    return process.env.DATABASE_SCHEMA.trim();
+  }
+
   const prod =
     process.env.NODE_ENV === 'production' ||
     !!process.env.REPLIT_DEPLOYMENT ||
-    process.env.REPLIT_ENVIRONMENT === 'production';
-  return prod ? 'production' : 'development';
+    process.env.REPLIT_ENVIRONMENT === 'production' ||
+    !!process.env.VERCEL;
+
+  // On Vercel/Neon use 'public' as the default schema
+  return prod ? 'public' : 'development';
 }
 
 if (!process.env.DATABASE_URL) {

@@ -94,7 +94,7 @@ export class DatabaseStorage implements IStorage {
         }
 
         // Only add sample data in development environment
-        if (!isProduction) {
+        if (getCurrentSchema() !== 'public') {
           console.log('Adding sample bookings and activities for development...');
 
           // Add sample bookings from recent dates
