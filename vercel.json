@@ -8,10 +8,7 @@
     },
     { 
       "src": "api/index.ts", 
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["shared/**", "server/**"]
-      }
+      "use": "@vercel/node"
     }
   ],
   "routes": [

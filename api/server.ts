@@ -2,7 +2,7 @@
 import express from "express";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { members, bookings, activities, comments, bookSlotSchema, insertCommentSchema } from "../shared/schema";
+import { members, bookings, activities, comments, bookSlotSchema, insertCommentSchema } from "../shared/schema.js";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Express } from "express";
