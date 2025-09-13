@@ -1,10 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.ts": {
-      "includeFiles": "api/routes.js"
-    }
-  },
   "builds": [
     { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "client/dist" } },
     { "src": "api/index.ts", "use": "@vercel/node" }
