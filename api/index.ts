@@ -1,33 +1,29 @@
 import express from "express";
+import { setupRoutes } from "./server";
 
 const app = express();
+
+// Enable CORS for frontend
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
 let initialized = false;
-let registerRoutesFn: any = null;
-let ensureInitializedFn: (() => Promise<void>) | null = null;
 
 async function ensureInitialized() {
   if (initialized) return;
-  if (!registerRoutesFn) {
-    try {
-      // Prefer the pre-bundled file on Vercel (generated during vercel-build)
-      const mod: any = await import("./routes.js" as any);
-      registerRoutesFn = mod.registerRoutes;
-      ensureInitializedFn = mod.storage?.ensureInitialized?.bind(mod.storage) || null;
-    } catch (_err) {
-      // Fallback for local/dev environments
-      const mod: any = await import("../server/routes" as any);
-      registerRoutesFn = mod.registerRoutes;
-      ensureInitializedFn = (await import("../server/storage" as any)).storage.ensureInitialized.bind((await import("../server/storage" as any)).storage);
-    }
-  }
-  // run one-time initialization if exposed
-  if (ensureInitializedFn) {
-    await ensureInitializedFn();
-  }
-  const server = await registerRoutesFn(app);
-  server.on("request", () => {});
+  await setupRoutes(app);
   initialized = true;
 }
 
