@@ -341,36 +341,34 @@ app.post("/api/bookings", async (req, res) => {
   }
 });
 
-app.delete("/api/bookings", async (req, res) => {
+app.delete("/api/bookings/:memberId/:date", async (req, res) => {
   try {
-    const { memberId, date } = req.query;
+    const { memberId, date } = req.params;
     
-    if (!memberId || !date) {
-      return res.status(400).json({ error: "memberId and date are required" });
+    const deleted = await storage.deleteBooking(memberId, date);
+    
+    if (!deleted) {
+      return res.status(404).json({ message: "Booking not found" });
     }
 
-    const success = await storage.deleteBooking(memberId as string, date as string);
-    
-    if (success) {
-      const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
-      const memberList = await storage.getMembers();
-      const member = memberList.find(m => m.id === memberId);
-      
-      await storage.createActivity({
-        memberId: memberId as string,
-        memberName: member?.name || 'Unknown',
-        action: 'cancelled',
-        date: date as string,
-        deviceInfo,
-      });
-      
-      res.json({ message: "Booking deleted successfully" });
-    } else {
-      res.status(404).json({ error: "Booking not found" });
-    }
+    // Find member name for activity log
+    const members = await storage.getMembers();
+    const member = members.find(m => m.id === memberId);
+    const memberName = member?.name || "Unknown";
+
+    // Log the activity
+    const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+    await storage.createActivity({
+      memberId,
+      memberName,
+      action: "cancelled a slot for",
+      date,
+      deviceInfo,
+    });
+
+    res.json({ message: "Booking cancelled successfully" });
   } catch (error) {
-    console.error("Error deleting booking:", error);
-    res.status(500).json({ error: "Failed to delete booking" });
+    res.status(500).json({ message: "Failed to cancel booking" });
   }
 });
 
