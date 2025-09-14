@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import type { Member, Booking } from "@shared/schema";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, getYear, getMonth } from "date-fns";
 
 const avatarColors = {
   green: "bg-green-100 text-green-700",
@@ -23,8 +23,9 @@ type SortField = 'name' | 'participationRate' | 'totalBookings';
 type SortDirection = 'asc' | 'desc';
 
 export default function MonthlyParticipation() {
-  const [selectedMonth, setSelectedMonth] = useState<string>("8"); // August
-  const [selectedYear, setSelectedYear] = useState<string>("2025");
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<string>((getMonth(now) + 1).toString());
+  const [selectedYear, setSelectedYear] = useState<string>(getYear(now).toString());
   const [sortField, setSortField] = useState<SortField>('participationRate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
@@ -109,6 +110,9 @@ export default function MonthlyParticipation() {
     "July", "August", "September", "October", "November", "December"
   ];
 
+  const currentYear = getYear(now);
+  const years = [currentYear, currentYear - 1];
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" data-testid="monthly-participation">
       <div className="flex items-center justify-between mb-6">
@@ -136,8 +140,11 @@ export default function MonthlyParticipation() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2025">2025</SelectItem>
-              <SelectItem value="2024">2024</SelectItem>
+              {years.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
