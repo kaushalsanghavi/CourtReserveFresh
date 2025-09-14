@@ -392,6 +392,16 @@ app.get("/api/activities", async (req, res) => {
   }
 });
 
+app.get("/api/activities/:date", async (req, res) => {
+  try {
+    const { date } = req.params;
+    const activities = await storage.getActivitiesByDate(date);
+    res.json(activities);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch activities for date" });
+  }
+});
+
 app.get("/api/comments", async (req, res) => {
   try {
     const { date } = req.query;
@@ -407,6 +417,28 @@ app.get("/api/comments", async (req, res) => {
   } catch (error) {
     console.error("Error fetching comments:", error);
     res.status(500).json({ error: "Failed to fetch comments" });
+  }
+});
+
+app.post("/api/comments", async (req, res) => {
+  try {
+    const validatedData = insertCommentSchema.parse(req.body);
+    const { memberId, memberName, date, comment } = validatedData;
+
+    // Create the comment
+    const newComment = await storage.createComment({
+      memberId,
+      memberName,
+      date,
+      comment,
+    });
+
+    res.json(newComment);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+    }
+    res.status(500).json({ message: "Failed to create comment" });
   }
 });
 
