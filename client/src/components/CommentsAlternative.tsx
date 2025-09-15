@@ -2,19 +2,17 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useSelectedMember } from "./QuickBooking";
 import type { Comment } from "@shared/schema";
 import { format } from "date-fns";
-import { MessageCircle, Plus } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 interface CommentsProps {
   date: string;
-  variant?: 'popover' | 'sheet' | 'modal';
+  variant?: 'sheet'; // Only sheet variant is now supported
 }
 
 function CommentForm({ date, onSuccess }: { date: string; onSuccess?: () => void }) {
@@ -122,7 +120,7 @@ function CommentsDisplay({ date }: { date: string }) {
   );
 }
 
-export default function CommentsAlternative({ date, variant = 'popover' }: CommentsProps) {
+export default function CommentsAlternative({ date, variant = 'sheet' }: CommentsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { data: comments = [] } = useQuery<Comment[]>({
     queryKey: ["/api/comments", date],
@@ -132,76 +130,33 @@ export default function CommentsAlternative({ date, variant = 'popover' }: Comme
     // Keep popover/sheet open after adding comment for better UX
   };
 
-  // Option 1: Popover (compact overlay)
-  if (variant === 'popover') {
-    return (
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-            data-testid={`button-comments-popover-${date}`}
-          >
-            <MessageCircle className="h-3 w-3 mr-1" />
-            Comments
-            {comments.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
-                {comments.length}
-              </Badge>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80 p-0" align="end">
-          <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-sm">Comments</h4>
-              <span className="text-xs text-gray-500">{format(new Date(date), "MMM d, yyyy")}</span>
+  return (
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <button
+          className="relative flex-1 flex items-center justify-center bg-transparent border-transparent hover:bg-gray-50 rounded-lg aspect-square h-12"
+          data-testid={`button-comments-sheet-${date}`}
+        >
+          <MessageCircle className="w-5 h-5 text-gray-400" />
+          {comments.length > 0 && (
+            <div className="badge-count">
+              {comments.length}
             </div>
-            <CommentsDisplay date={date} />
+          )}
+        </button>
+      </SheetTrigger>
+      <SheetContent className="w-96">
+        <SheetHeader>
+          <SheetTitle>Comments for {format(new Date(date), "MMMM d, yyyy")}</SheetTitle>
+        </SheetHeader>
+        <div className="mt-6 space-y-6">
+          <CommentsDisplay date={date} />
+          <div className="border-t pt-4">
+            <h5 className="text-sm font-medium mb-3">Add New Comment</h5>
             <CommentForm date={date} onSuccess={handleSuccess} />
           </div>
-        </PopoverContent>
-      </Popover>
-    );
-  }
-
-  // Option 2: Sheet (slide-out panel)
-  if (variant === 'sheet') {
-    return (
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-            data-testid={`button-comments-sheet-${date}`}
-          >
-            <MessageCircle className="h-3 w-3 mr-1" />
-            Comments
-            {comments.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
-                {comments.length}
-              </Badge>
-            )}
-          </Button>
-        </SheetTrigger>
-        <SheetContent className="w-96">
-          <SheetHeader>
-            <SheetTitle>Comments for {format(new Date(date), "MMMM d, yyyy")}</SheetTitle>
-          </SheetHeader>
-          <div className="mt-6 space-y-6">
-            <CommentsDisplay date={date} />
-            <div className="border-t pt-4">
-              <h5 className="text-sm font-medium mb-3">Add New Comment</h5>
-              <CommentForm date={date} onSuccess={handleSuccess} />
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  // Fallback to popover
-  return <CommentsAlternative date={date} variant="popover" />;
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
 }

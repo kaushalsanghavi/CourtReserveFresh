@@ -144,21 +144,17 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
         {getButtonText()}
       </Button>
       
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex gap-3">
         <CommentsAlternative date={dateStr} variant="sheet" />
         
         <Sheet>
           <SheetTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1 flex items-center gap-2 text-xs"
+            <button
+              className="flex-1 flex items-center justify-center bg-transparent border-transparent hover:bg-gray-50 rounded-lg aspect-square h-12"
               data-testid={`booking-history-btn-${dateStr}`}
             >
-              <History className="w-3 h-3" />
-              {/* Icon only */}
-              
-            </Button>
+              <History className="w-5 h-5 text-gray-400" />
+            </button>
           </SheetTrigger>
           <SheetContent side="right" className="w-[90vw] sm:w-[540px] overflow-y-auto">
             <BookingHistory date={dateStr} />
