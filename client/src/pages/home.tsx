@@ -5,9 +5,10 @@ import QuickBooking, { SelectedMemberProvider } from "@/components/QuickBooking"
 import BookingCalendar from "@/components/BookingCalendar";
 import RecentActivity from "@/components/RecentActivity";
 import MonthlyParticipation from "@/components/MonthlyParticipation";
+import AIChatPage from "@/pages/ai-chat";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"recent-activity" | "monthly-participation">("recent-activity");
+  const [activeTab, setActiveTab] = useState<"recent-activity" | "monthly-participation" | "ai-chat">("recent-activity");
 
   return (
     <SelectedMemberProvider>
@@ -17,16 +18,22 @@ export default function Home() {
         <main className="max-w-7xl mx-auto px-6 py-8">
           <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
           
-          <QuickBooking />
+          {activeTab !== "ai-chat" && <QuickBooking />}
           
-          {activeTab === "recent-activity" ? (
+          {activeTab === "recent-activity" && (
             <div data-testid="tab-recent-activity">
               <BookingCalendar />
               <RecentActivity />
             </div>
-          ) : (
+          )}
+          {activeTab === "monthly-participation" && (
             <div data-testid="tab-monthly-participation">
               <MonthlyParticipation />
+            </div>
+          )}
+          {activeTab === "ai-chat" && (
+            <div data-testid="tab-ai-chat">
+              <AIChatPage />
             </div>
           )}
         </main>

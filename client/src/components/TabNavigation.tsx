@@ -1,6 +1,6 @@
 interface TabNavigationProps {
-  activeTab: "recent-activity" | "monthly-participation";
-  onTabChange: (tab: "recent-activity" | "monthly-participation") => void;
+  activeTab: "recent-activity" | "monthly-participation" | "ai-chat";
+  onTabChange: (tab: "recent-activity" | "monthly-participation" | "ai-chat") => void;
 }
 
 export default function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
@@ -28,6 +28,17 @@ export default function TabNavigation({ activeTab, onTabChange }: TabNavigationP
           data-testid="tab-monthly-participation-button"
         >
           Monthly Participation
+        </button>
+        <button 
+          className={`px-1 py-4 text-sm font-medium border-b-2 ${
+            activeTab === "ai-chat" 
+              ? "text-green-600 border-green-600" 
+              : "text-gray-500 hover:text-gray-700 border-transparent"
+          }`}
+          onClick={() => onTabChange("ai-chat")}
+          data-testid="tab-ai-chat-button"
+        >
+          AI Chat
         </button>
       </nav>
     </div>
