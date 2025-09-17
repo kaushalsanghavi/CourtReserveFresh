@@ -1,8 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { storage } from './storage';
-import { db } from './db';
+import { storage, db } from './server'; // Adjusted import for storage and db
 import { eq, sql, count, desc, and, like, gte, not } from 'drizzle-orm';
-import { activities, bookings, members } from '../shared/schema';
+import { activities, bookings, members } from '../../shared/schema'; // Adjusted import path
 import { startOfWeek, endOfWeek, startOfDay, endOfDay, isWithinInterval, parseISO } from 'date-fns';
 
 const SYSTEM_PROMPT = `
@@ -12,6 +11,7 @@ You are an AI assistant for the 'CourtReserve' application. Your ONLY purpose is
 - You MUST NOT answer any questions outside of this scope (e.g., weather, news, general knowledge).
 - If asked an irrelevant question, you MUST politely decline with a message like: 'I can only help with questions about CourtReserve. How can I assist with bookings or members today?'
 - Use ONLY the data provided in the 'Context' section to answer the user's question. Do not make up information.
+
 `;
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
