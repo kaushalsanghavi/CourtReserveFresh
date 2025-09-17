@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -6,9 +7,9 @@ import { useSelectedMember } from "./QuickBooking";
 import CommentsAlternative from "./CommentsAlternative";
 import BookingHistory from "./BookingHistory";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { History } from "lucide-react";
+import { History, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Member, Booking, Comment } from "@shared/schema";
-import { format, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, setHours, setMinutes } from "date-fns";
+import { format, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, setHours, setMinutes, subMonths } from "date-fns";
 
 interface DayCardProps {
   date: Date;
@@ -139,8 +140,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
         }`}
         onClick={handleButtonClick}
         disabled={isButtonDisabled()}
-        data-testid={`button-book-slot-${dateStr}`}
-      >
+        data-testid={`button-book-slot-${dateStr}`}>
         {getButtonText()}
       </Button>
       
@@ -151,8 +151,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
           <SheetTrigger asChild>
             <button
               className="flex-1 flex items-center justify-center bg-transparent border-transparent hover:bg-gray-50 rounded-lg aspect-square h-12"
-              data-testid={`booking-history-btn-${dateStr}`}
-            >
+              data-testid={`booking-history-btn-${dateStr}`}>
               <History className="w-5 h-5 text-gray-400" />
             </button>
           </SheetTrigger>
@@ -169,41 +168,25 @@ export default function BookingCalendar() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { selectedMemberId, selectedMember } = useSelectedMember();
+  const [dateOffset, setDateOffset] = useState(0);
 
-  const { data: members = [] } = useQuery<Member[]>({
-    queryKey: ["/api/members"],
-  });
-
-  const { data: bookings = [] } = useQuery<Booking[]>({
-    queryKey: ["/api/bookings"],
-  });
+  const { data: members = [] } = useQuery<Member[]>({ queryKey: ["/api/members"] });
+  const { data: bookings = [] } = useQuery<Booking[]>({ queryKey: ["/api/bookings"] });
 
   const bookSlotMutation = useMutation({
     mutationFn: async (date: string) => {
       if (!selectedMemberId || !selectedMember) {
         throw new Error("Please select a member");
       }
-
-      return apiRequest("POST", "/api/bookings", {
-        memberId: selectedMemberId,
-        memberName: selectedMember.name,
-        date,
-      });
+      return apiRequest("POST", "/api/bookings", { memberId: selectedMemberId, memberName: selectedMember.name, date });
     },
     onSuccess: () => {
-      toast({
-        title: "Booking successful",
-        description: "Slot booked successfully",
-      });
+      toast({ title: "Booking successful", description: "Slot booked successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Booking failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Booking failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -212,28 +195,19 @@ export default function BookingCalendar() {
       return apiRequest("DELETE", `/api/bookings/${memberId}/${date}`, {});
     },
     onSuccess: () => {
-      toast({
-        title: "Booking cancelled",
-        description: "Your booking has been cancelled",
-      });
+      toast({ title: "Booking cancelled", description: "Your booking has been cancelled" });
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Cancellation failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Cancellation failed", description: error.message, variant: "destructive" });
     },
   });
 
-  // Generate weekdays for next 2 weeks
   const today = new Date();
-  const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+  const startOfThisWeek = startOfWeek(addDays(today, dateOffset), { weekStartsOn: 1 });
   const weekDays: Date[] = [];
 
-  // Get weekdays from current week and next week
   for (let i = 0; i < 14; i++) {
     const day = addDays(startOfThisWeek, i);
     if (!isWeekend(day)) {
@@ -241,22 +215,28 @@ export default function BookingCalendar() {
     }
   }
 
-  // Group by weeks
   const week1 = weekDays.slice(0, 5);
   const week2 = weekDays.slice(5, 10);
+
+  const twoMonthsAgo = subMonths(today, 2);
+  const isPrevDisabled = startOfWeek(addDays(today, dateOffset - 14), { weekStartsOn: 1 }) < twoMonthsAgo;
+  const isNextDisabled = dateOffset >= 0;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8" data-testid="booking-calendar">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-medium text-gray-900">2-Week Booking Window</h2>
+          <h2 className="text-lg font-medium text-gray-900">Booking Window</h2>
           <p className="text-sm text-gray-600">Weekdays only (Monday - Friday)</p>
         </div>
-        {!selectedMemberId && (
-          <div className="text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded-md">
-            Select a member above to book or cancel slots
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => setDateOffset(dateOffset - 14)} disabled={isPrevDisabled}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => setDateOffset(dateOffset + 14)} disabled={isNextDisabled}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Week 1 */}
