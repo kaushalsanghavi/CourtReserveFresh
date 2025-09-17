@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Feature Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        /* General Styles */
+        .chat-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+        }
+        .chat-bubble.user { background-color: #2563eb; color: white; border-bottom-right-radius: 0.25rem; }
+        .chat-bubble.ai { background-color: #e5e7eb; color: #1f2937; border-bottom-left-radius: 0.25rem; }
+
+        /* Option A: Floating Chat Window */
+        #fab-chat-window {
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+
+        /* Option B: Full-Screen Chat Page */
+        #chat-page { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="w-full max-w-lg mx-auto bg-gray-50 min-h-screen flex flex-col">
+        <!-- App Header -->
+        <header class="bg-white border-b p-4 shadow-sm sticky top-0 z-20">
+            <h1 class="text-lg font-semibold text-center">CourtReserve</h1>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="main-content" class="flex-1 p-4 space-y-4">
+            <!-- Tab Navigation -->
+            <div id="main-tabs" class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8">
+                    <button class="tab-btn active" data-tab="activity">Recent Activity</button>
+                    <button class="tab-btn" data-tab="participation">Monthly Participation</button>
+                    <button id="ai-chat-tab-btn" class="tab-btn" data-tab="ai-chat">AI Chat</button>
+                </nav>
+            </div>
+            <div id="activity-content">
+                <div class="bg-white rounded-lg p-4 border h-64"><p>Booking calendar would be here...</p></div>
+            </div>
+            <div id="participation-content" class="hidden"><p>Participation stats would be here...</p></div>
+        </main>
+
+        <!-- Option B: Full-Screen Chat Page -->
+        <div id="chat-page" class="hidden flex-1 flex-col">
+            <div class="flex-1 p-4 space-y-4 overflow-y-auto" id="chat-page-messages"></div>
+            <div class="p-4 bg-white border-t">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="chat-page-input" class="w-full p-2 border rounded-lg" placeholder="Ask about bookings...">
+                    <button id="chat-page-send-btn" class="p-2 bg-blue-600 text-white rounded-lg"><i data-lucide="send"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option A: Floating Action Button -->
+        <button id="fab-chat-btn" class="fixed bottom-6 right-6 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center z-30">
+            <i data-lucide="message-circle"></i>
+        </button>
+
+        <!-- Option A: Floating Chat Window -->
+        <div id="fab-chat-window" class="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-end transform translate-y-full opacity-0">
+            <div class="bg-white w-full max-w-lg h-[85%] rounded-t-2xl flex flex-col">
+                <header class="p-4 border-b flex justify-between items-center">
+                    <h2 class="font-semibold">AI Assistant</h2>
+                    <button id="fab-chat-close-btn"><i data-lucide="x"></i></button>
+                </header>
+                <div class="flex-1 p-4 space-y-4 overflow-y-auto" id="fab-chat-messages"></div>
+                <div class="p-4 bg-white border-t">
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="fab-chat-input" class="w-full p-2 border rounded-lg" placeholder="Ask about bookings...">
+                        <button id="fab-chat-send-btn" class="p-2 bg-blue-600 text-white rounded-lg"><i data-lucide="send"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prototype Controls -->
+        <div class="fixed top-2 left-2 z-50 bg-white p-2 rounded-lg shadow-md border text-xs">
+            <p class="font-bold mb-1">Prototype View:</p>
+            <div class="flex gap-2">
+                <button id="view-option-a" class="px-2 py-1 rounded bg-blue-100 text-blue-800">Option A (FAB)</button>
+                <button id="view-option-b" class="px-2 py-1 rounded bg-gray-100 text-gray-800">Option B (Tab)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // --- CHAT SIMULATION LOGIC ---
+        const cannedResponses = {
+            "how many slots are left for today?": "There are 4 slots left for today.",
+            "who is booked for tomorrow?": "John S. and Jane D. are booked for tomorrow.",
+            "cancel my booking": "I can help with that. Which booking would you like to cancel?",
+            "default": "I can only answer questions about bookings and members. How can I help with the CourtReserve app?"
+        };
+
+        function getResponse(input) {
+            const lowerInput = input.toLowerCase().trim();
+            return cannedResponses[lowerInput] || cannedResponses["default"];
+        }
+
+        function appendMessage(container, text, sender) {
+            const bubble = document.createElement('div');
+            bubble.classList.add('chat-bubble', sender);
+            bubble.textContent = text;
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('flex', sender === 'user' ? 'justify-end' : 'justify-start');
+            wrapper.appendChild(bubble);
+            container.appendChild(wrapper);
+            container.scrollTop = container.scrollHeight; // Scroll to bottom
+        }
+
+        function setupChat(inputId, sendBtnId, messagesId) {
+            const input = document.getElementById(inputId);
+            const sendBtn = document.getElementById(sendBtnId);
+            const messages = document.getElementById(messagesId);
+
+            const handleSend = () => {
+                const userText = input.value;
+                if (!userText) return;
+
+                appendMessage(messages, userText, 'user');
+                input.value = '';
+
+                setTimeout(() => {
+                    const aiText = getResponse(userText);
+                    appendMessage(messages, aiText, 'ai');
+                }, 500);
+            };
+
+            sendBtn.addEventListener('click', handleSend);
+            input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
+        }
+
+        setupChat('fab-chat-input', 'fab-chat-send-btn', 'fab-chat-messages');
+        setupChat('chat-page-input', 'chat-page-send-btn', 'chat-page-messages');
+
+        // --- UI TOGGLE LOGIC ---
+        const fabBtn = document.getElementById('fab-chat-btn');
+        const fabWindow = document.getElementById('fab-chat-window');
+        const fabCloseBtn = document.getElementById('fab-chat-close-btn');
+        const mainContent = document.getElementById('main-content');
+        const chatPage = document.getElementById('chat-page');
+        const mainTabs = document.getElementById('main-tabs');
+        const aiChatTabBtn = document.getElementById('ai-chat-tab-btn');
+
+        // FAB visibility
+        fabBtn.addEventListener('click', () => {
+            fabWindow.classList.remove('translate-y-full', 'opacity-0');
+        });
+        fabCloseBtn.addEventListener('click', () => {
+            fabWindow.classList.add('translate-y-full', 'opacity-0');
+        });
+
+        // Main Tab navigation
+        mainTabs.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('tab-btn')) return;
+
+            Array.from(mainTabs.children).forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+
+            const tab = e.target.dataset.tab;
+            mainContent.style.display = (tab === 'ai-chat') ? 'none' : 'flex';
+            chatPage.style.display = (tab === 'ai-chat') ? 'flex' : 'none';
+        });
+
+        // Prototype view toggles
+        const viewOptionA = document.getElementById('view-option-a');
+        const viewOptionB = document.getElementById('view-option-b');
+
+        function showOptionA() {
+            fabBtn.style.display = 'flex';
+            aiChatTabBtn.style.display = 'none';
+            viewOptionA.classList.add('bg-blue-100', 'text-blue-800');
+            viewOptionB.classList.remove('bg-blue-100', 'text-blue-800');
+            // Reset to default view
+            mainContent.style.display = 'flex';
+            chatPage.style.display = 'none';
+            Array.from(mainTabs.children).forEach(btn => btn.classList.remove('active'));
+            mainTabs.children[0].classList.add('active');
+        }
+
+        function showOptionB() {
+            fabBtn.style.display = 'none';
+            aiChatTabBtn.style.display = 'inline-flex';
+            viewOptionB.classList.add('bg-blue-100', 'text-blue-800');
+            viewOptionA.classList.remove('bg-blue-100', 'text-blue-800');
+        }
+
+        viewOptionA.addEventListener('click', showOptionA);
+        viewOptionB.addEventListener('click', showOptionB);
+
+        // Initial state
+        showOptionA();
+
+    </script>
+</body>
+</html>
