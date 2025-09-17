@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Member Mockup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body class="bg-gray-100 p-4 sm:p-8">
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="p-6 border-b">
+                <h1 class="text-xl font-semibold text-gray-900">Add New Member</h1>
+                <p class="text-sm text-gray-600 mt-1">Add a new regular member or a guest to the system.</p>
+            </div>
+            <form class="p-6 space-y-6">
+                <!-- Member Type Selection -->
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Member Type</label>
+                    <div class="mt-2 flex gap-4" id="member-type-group">
+                        <label for="type-regular" class="flex items-center p-3 border rounded-lg cursor-pointer flex-1">
+                            <input type="radio" id="type-regular" name="member-type" value="regular" class="h-4 w-4 text-blue-600 border-gray-300" checked>
+                            <span class="ml-3 text-sm font-medium text-gray-800">Regular Member</span>
+                        </label>
+                        <label for="type-guest" class="flex items-center p-3 border rounded-lg cursor-pointer flex-1">
+                            <input type="radio" id="type-guest" name="member-type" value="guest" class="h-4 w-4 text-blue-600 border-gray-300">
+                            <span class="ml-3 text-sm font-medium text-gray-800">Guest Member</span>
+                        </label>
+                    </div>
+                    <div id="guest-info-box" class="hidden mt-3 p-3 bg-amber-50 border-l-4 border-amber-400 text-amber-800">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i data-lucide="alert-triangle" class="h-5 w-5 text-amber-500"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm"><b>Guest Member Permissions:</b> Guests can only book on Sundays and their activity does not count towards monthly participation stats.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Name -->
+                <div>
+                    <label for="name" class="text-sm font-medium text-gray-700">Full Name</label>
+                    <input type="text" id="name" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="e.g., John Smith">
+                </div>
+
+                <!-- Initials -->
+                <div>
+                    <label for="initials" class="text-sm font-medium text-gray-700">Initials</label>
+                    <input type="text" id="initials" maxlength="2" class="mt-1 block w-20 p-2 border border-gray-300 rounded-md shadow-sm uppercase" placeholder="JS">
+                </div>
+
+                <!-- Avatar Color -->
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Avatar Color</label>
+                    <div class="mt-2 flex flex-wrap gap-3">
+                        <button type="button" class="w-8 h-8 rounded-full bg-green-500 border-2 border-blue-500"></button>
+                        <button type="button" class="w-8 h-8 rounded-full bg-blue-500"></button>
+                        <button type="button" class="w-8 h-8 rounded-full bg-purple-500"></button>
+                        <button type.button" class="w-8 h-8 rounded-full bg-yellow-500"></button>
+                        <button type="button" class="w-8 h-8 rounded-full bg-pink-500"></button>
+                        <button type="button" class="w-8 h-8 rounded-full bg-indigo-500"></button>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="pt-6 border-t flex justify-end">
+                    <button type="submit" class="w-full sm:w-auto font-medium bg-blue-600 text-white hover:bg-blue-700 py-2 px-4 rounded-lg">Save Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const memberTypeGroup = document.getElementById('member-type-group');
+        const guestInfoBox = document.getElementById('guest-info-box');
+        memberTypeGroup.addEventListener('change', (event) => {
+            if (event.target.value === 'guest') {
+                guestInfoBox.classList.remove('hidden');
+            } else {
+                guestInfoBox.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
