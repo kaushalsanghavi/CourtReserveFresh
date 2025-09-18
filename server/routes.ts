@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { bookSlotSchema, insertCommentSchema } from "@shared/schema";
 import { z } from "zod";
+import { getAiReply } from "./ai";
 
 function parseUserAgent(userAgent: string): string {
   if (!userAgent) return 'Unknown Device';
@@ -250,6 +251,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  // AI Chat endpoint
+  app.post("/api/ai/chat", async (req, res) => {
+    const { message } = req.body;
+
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ message: "Invalid request, 'message' is required." });
+    }
+
+    try {
+      const reply = await getAiReply(message);
+      res.json({ reply });
+    } catch (error) {
+      console.error("Error in AI chat endpoint:", error);
+      res.status(500).json({ message: "Failed to get AI reply." });
     }
   });
 
