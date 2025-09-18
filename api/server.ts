@@ -6,7 +6,6 @@ import { members, bookings, activities, comments, bookSlotSchema, insertCommentS
 import { eq, desc, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Express } from "express";
-import { getAiReply } from "./ai";
 
 // Database setup
 const connection = neon(process.env.DATABASE_URL!);
@@ -382,23 +381,6 @@ export async function setupRoutes(app: Express) {
         console.error("Error creating comment:", error);
         res.status(500).json({ error: "Failed to create comment" });
       }
-    }
-  });
-
-  // AI Chat endpoint
-  app.post("/api/ai/chat", async (req, res) => {
-    const { message } = req.body;
-
-    if (!message || typeof message !== 'string') {
-      return res.status(400).json({ message: "Invalid request, 'message' is required." });
-    }
-
-    try {
-      const reply = await getAiReply(message);
-      res.json({ reply });
-    } catch (error) {
-      console.error("Error in AI chat endpoint:", error);
-      res.status(500).json({ message: "Failed to get AI reply." });
     }
   });
 
