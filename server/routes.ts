@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { bookSlotSchema, insertCommentSchema } from "@shared/schema";
 import { z } from "zod";
-import { getAiReply } from "./ai";
+import { getAiReply } from "../api/index";
 
 function parseUserAgent(userAgent: string): string {
   if (!userAgent) return 'Unknown Device';
