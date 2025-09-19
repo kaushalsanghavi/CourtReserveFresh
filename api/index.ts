@@ -6,7 +6,6 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { Pool } from 'pg'; // Use pg for local development
-import { getCurrentSchema } from '../server/db'; // Import getCurrentSchema
 import { NodePgDatabase, drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 
 // Database schema - inlined to avoid import issues
@@ -90,6 +89,23 @@ function generateUuid(): string {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+// Dynamic schema detection for use in queries
+function getCurrentSchema(): string {
+  // Allow overriding explicitly
+  if (process.env.DATABASE_SCHEMA && process.env.DATABASE_SCHEMA.trim().length > 0) {
+    return process.env.DATABASE_SCHEMA.trim();
+  }
+
+  const prod =
+    process.env.NODE_ENV === 'production' ||
+    !!process.env.REPLIT_DEPLOYMENT ||
+    process.env.REPLIT_ENVIRONMENT === 'production' ||
+    !!process.env.VERCEL;
+
+  // On Vercel/Neon use 'public' as the default schema
+  return prod ? 'public' : 'development';
 }
 
 function parseUserAgent(userAgent: string): string {
