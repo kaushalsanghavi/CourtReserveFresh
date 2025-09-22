@@ -2,7 +2,7 @@ import express from "express";
 import { neon } from "@neondatabase/serverless";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
 import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, sql, count, desc, and, like, gte, not, lt } from 'drizzle-orm';
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { Pool } from 'pg'; // Use pg for local development
@@ -626,6 +626,9 @@ async function getContextData(intent: string, message: string): Promise<string |
       })
       .from(bookings)
       .groupBy(bookings.memberName);
+      if (contextData) {
+        contextData = JSON.stringify(contextData, null, 2);
+      }
       break;
     case "query_activity":
       if (lowerMessage.includes("ios") || lowerMessage.includes("iphone")) {
@@ -636,7 +639,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         .from(activities)
         .where(like(activities.deviceInfo, '%iOS%'))
         .groupBy(activities.memberName)
-        .orderBy(desc(sql`activityCount`));
+        .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
           contextData = `The following members have shown activity on iOS devices: ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
@@ -650,7 +653,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         .from(activities)
         .where(like(activities.deviceInfo, '%Android%'))
         .groupBy(activities.memberName)
-        .orderBy(desc(sql`activityCount`));
+        .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
           contextData = `The following members have shown activity on Android devices: ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
@@ -664,7 +667,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         .from(activities)
         .where(gte(sql`EXTRACT(HOUR FROM ${activities.createdAt})`, 21))
         .groupBy(activities.memberName)
-        .orderBy(desc(sql`activityCount`));
+        .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
           contextData = `The following members have shown late night activity (after 9 PM): ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
@@ -676,9 +679,9 @@ async function getContextData(intent: string, message: string): Promise<string |
           activityCount: count(activities.id),
         })
         .from(activities)
-        .where(and(gte(sql`CAST(strftime('%H', ${activities.createdAt}) AS INTEGER)`, 6), gte(sql`CAST(strftime('%H', ${activities.createdAt}) AS INTEGER)`, 12)))
+        .where(and(gte(sql`EXTRACT(HOUR FROM ${activities.createdAt})`, 6), lte(sql`EXTRACT(HOUR FROM ${activities.createdAt})`, 12)))
         .groupBy(activities.memberName)
-        .orderBy(desc(sql`activityCount`));
+        .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
           contextData = `The following members have shown morning activity (between 6 AM and 12 PM): ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
@@ -692,7 +695,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         .from(activities)
         .where(and(not(like(activities.deviceInfo, '%iOS%')), not(like(activities.deviceInfo, '%Android%'))))
         .groupBy(activities.memberName)
-        .orderBy(desc(sql`activityCount`));
+        .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
           contextData = `The following members have shown activity on non-mobile devices (desktop/computer): ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
@@ -706,7 +709,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         })
         .from(activities)
         .groupBy(activities.memberName)
-        .orderBy(desc(sql`activityCount`));
+        .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
           contextData = `The overall activity by members is: ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
@@ -716,12 +719,15 @@ async function getContextData(intent: string, message: string): Promise<string |
       break;
     case "query_members":
       contextData = await db.select().from(members).orderBy(desc(members.createdAt));
+      if (contextData) {
+        contextData = JSON.stringify(contextData, null, 2);
+      }
       break;
     default:
       return null;
   }
 
-  return contextData ? JSON.stringify(contextData, null, 2) : null;
+  return contextData ? contextData : null;
 }
 
 async function getAiReply(userMessage: string): Promise<string> {
