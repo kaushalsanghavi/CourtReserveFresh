@@ -1,7 +1,27 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { bookSlotSchema, insertCommentSchema } from "@shared/schema";
+import { 
+  bookSlotSchema, 
+  insertCommentSchema, 
+  timeUpdateSchema, 
+  validateBookingRequest,
+  type SundayBookingResponse 
+} from "@shared/schema";
+import { 
+  isSundayDate, 
+  getUpcomingSundays, 
+  groupSundayBookingsByDate, 
+  createSundayBookingGroup, 
+  toSundayBookingResponse,
+  isFutureDate 
+} from "@shared/sunday-booking-utils";
+import { 
+  sundayBookingService,
+  processUpcomingSundayBookings,
+  processTimeSlotChange,
+  processNewBooking
+} from "@shared/sunday-booking-service";
 import { z } from "zod";
 
 function parseUserAgent(userAgent: string): string {
@@ -83,12 +103,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all bookings
+  // Get all bookings with optional type parameter for Sunday bookings
   app.get("/api/bookings", async (req, res) => {
     try {
-      const bookings = await storage.getBookings();
-      res.json(bookings);
+      const { type } = req.query;
+      
+      if (type === 'sunday') {
+        // Return Sunday bookings grouped by date using the service
+        const sundayBookings = await storage.getSundayBookings();
+        const sundayBookingResponses = processUpcomingSundayBookings(sundayBookings, 6);
+        
+        res.json(sundayBookingResponses);
+      } else {
+        // Return all bookings (default behavior)
+        const bookings = await storage.getBookings();
+        res.json(bookings);
+      }
     } catch (error) {
+      console.error('Error fetching bookings:', error);
       res.status(500).json({ message: "Failed to fetch bookings" });
     }
   });
@@ -104,62 +136,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Book a slot
+  // Book a slot (weekday or Sunday)
   app.post("/api/bookings", async (req, res) => {
     try {
-      const validatedData = bookSlotSchema.parse(req.body);
-      const { memberId, memberName, date } = validatedData;
+      const validatedData = validateBookingRequest(req.body);
+      const { memberId, memberName, date, timeSlot } = validatedData;
+      const isSunday = isSundayDate(date);
 
-      // Check if date is a weekday
-      const bookingDate = new Date(date);
-      const dayOfWeek = bookingDate.getDay();
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        return res.status(400).json({ message: "Bookings are only allowed on weekdays (Monday-Friday)" });
+      // Handle weekday bookings (existing logic)
+      if (!isSunday) {
+        // Check if date is a weekday
+        const bookingDate = new Date(date);
+        const dayOfWeek = bookingDate.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          return res.status(400).json({ message: "Bookings are only allowed on weekdays (Monday-Friday) or Sundays" });
+        }
+
+        // Check if member already has a booking for this date
+        const existingBookings = await storage.getBookingsByDate(date);
+        const memberBooking = existingBookings.find(booking => booking.memberId === memberId);
+        
+        if (memberBooking) {
+          return res.status(400).json({ message: "Member already has a booking for this date" });
+        }
+
+        // Check if date has reached maximum capacity (6 slots)
+        if (existingBookings.length >= 6) {
+          return res.status(400).json({ message: "This date is fully booked (6/6 slots)" });
+        }
+
+        // Create the weekday booking
+        const booking = await storage.createBooking({
+          memberId,
+          memberName,
+          date,
+          isSundayBooking: false,
+        });
+
+        // Log the activity
+        const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+        await storage.createActivity({
+          memberId,
+          memberName,
+          action: "booked a slot for",
+          date,
+          deviceInfo,
+        });
+
+        res.json(booking);
+      } else {
+        // Handle Sunday bookings
+        if (!isFutureDate(date)) {
+          return res.status(400).json({ message: "Cannot book slots for past dates" });
+        }
+
+        // Use the service to validate and process the booking
+        const existingSundayBookings = await storage.getSundayBookingsByDate(date);
+        const bookingRequest = { memberId, memberName, date, timeSlot };
+        const processResult = processNewBooking(bookingRequest, existingSundayBookings);
+
+        if (!processResult.success) {
+          const errorMessage = processResult.validation.errors[0] || "Invalid booking request";
+          return res.status(400).json({ message: errorMessage });
+        }
+
+        // Get time slot information from the processing result
+        const timeSlotInfo = processResult.timeSlotInfo;
+        if (!timeSlotInfo) {
+          return res.status(400).json({ message: "Unable to determine time slot for booking" });
+        }
+
+        // Create the Sunday booking
+        const booking = await storage.createBooking({
+          memberId,
+          memberName,
+          date,
+          isSundayBooking: true,
+          timeSlot: timeSlotInfo.timeSlot,
+          timeSetBy: timeSlotInfo.timeSetBy,
+          timeSetAt: timeSlotInfo.timeSetAt,
+        });
+
+        // Log the activity
+        const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+        await storage.createActivity({
+          memberId,
+          memberName,
+          action: "booked a Sunday slot for",
+          date,
+          deviceInfo,
+        });
+
+        res.json(booking);
       }
-
-      // Check if member already has a booking for this date
-      const existingBookings = await storage.getBookingsByDate(date);
-      const memberBooking = existingBookings.find(booking => booking.memberId === memberId);
-      
-      if (memberBooking) {
-        return res.status(400).json({ message: "Member already has a booking for this date" });
-      }
-
-      // Check if date has reached maximum capacity (6 slots)
-      if (existingBookings.length >= 6) {
-        return res.status(400).json({ message: "This date is fully booked (6/6 slots)" });
-      }
-
-      // Create the booking
-      const booking = await storage.createBooking({
-        memberId,
-        memberName,
-        date,
-      });
-
-      // Log the activity
-      const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
-      await storage.createActivity({
-        memberId,
-        memberName,
-        action: "booked a slot for",
-        date,
-        deviceInfo,
-      });
-
-      res.json(booking);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
       }
+      console.error('Error creating booking:', error);
       res.status(500).json({ message: "Failed to create booking" });
     }
   });
 
-  // Cancel a booking
+  // Cancel a booking (weekday or Sunday)
   app.delete("/api/bookings/:memberId/:date", async (req, res) => {
     try {
       const { memberId, date } = req.params;
+      
+      // Check if this is a Sunday booking to determine activity message
+      const isSunday = isSundayDate(date);
       
       const deleted = await storage.deleteBooking(memberId, date);
       
@@ -172,19 +257,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const member = members.find(m => m.id === memberId);
       const memberName = member?.name || "Unknown";
 
-      // Log the activity
+      // Log the activity with appropriate message
       const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+      const action = isSunday ? "cancelled a Sunday slot for" : "cancelled a slot for";
+      
       await storage.createActivity({
         memberId,
         memberName,
-        action: "cancelled a slot for",
+        action,
         date,
         deviceInfo,
       });
 
       res.json({ message: "Booking cancelled successfully" });
     } catch (error) {
+      console.error('Error cancelling booking:', error);
       res.status(500).json({ message: "Failed to cancel booking" });
+    }
+  });
+
+  // Update time slot for Sunday bookings
+  app.put("/api/bookings/:date/time", async (req, res) => {
+    try {
+      const { date } = req.params;
+      const validatedData = timeUpdateSchema.parse(req.body);
+      const { timeSlot, memberId } = validatedData;
+
+      // Get existing bookings for validation
+      const existingBookings = await storage.getSundayBookingsByDate(date);
+      
+      // Use the service to validate and process the time slot change
+      const changeRequest = {
+        date,
+        newTimeSlot: timeSlot,
+        memberId,
+        memberName: '' // We'll get this from members if needed
+      };
+      
+      const processResult = processTimeSlotChange(changeRequest, existingBookings);
+      
+      if (!processResult.success) {
+        const errorMessage = processResult.validation.errors[0] || "Invalid time slot change";
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      // Update the time slot for all bookings on this date
+      const updated = await storage.updateTimeSlot(date, timeSlot, memberId);
+      
+      if (!updated) {
+        return res.status(500).json({ message: "Failed to update time slot" });
+      }
+
+      // Find member name for activity log
+      const members = await storage.getMembers();
+      const member = members.find(m => m.id === memberId);
+      const memberName = member?.name || "Unknown";
+
+      // Log the activity
+      const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+      await storage.createActivity({
+        memberId,
+        memberName,
+        action: `set time slot to ${timeSlot} for`,
+        date,
+        deviceInfo,
+      });
+
+      // Return updated Sunday booking data for this date
+      const updatedBookings = await storage.getSundayBookingsByDate(date);
+      const groups = sundayBookingService.createBookingGroups([date], updatedBookings);
+      const responses = sundayBookingService.transformToApiResponse(groups);
+
+      res.json(responses[0] || null);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      console.error('Error updating time slot:', error);
+      res.status(500).json({ message: "Failed to update time slot" });
     }
   });
 

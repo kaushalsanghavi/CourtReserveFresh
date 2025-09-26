@@ -37,6 +37,11 @@ export interface IStorage {
   createBooking(booking: InsertBooking): Promise<Booking>;
   deleteBooking(memberId: string, date: string): Promise<boolean>;
   
+  // Sunday Bookings
+  getSundayBookings(): Promise<Booking[]>;
+  getSundayBookingsByDate(date: string): Promise<Booking[]>;
+  updateTimeSlot(date: string, timeSlot: string, memberId: string): Promise<boolean>;
+  
   // Activities
   getActivities(): Promise<Activity[]>;
   getActivitiesByDate(date: string): Promise<Activity[]>;
@@ -230,13 +235,17 @@ export class DatabaseStorage implements IStorage {
   async getBookings(): Promise<Booking[]> {
     try {
       const result = await db.execute(
-        sql.raw(`SELECT id, member_id, member_name, date, created_at FROM ${getCurrentSchema()}.bookings ORDER BY created_at DESC`)
+        sql.raw(`SELECT id, member_id, member_name, date, is_sunday_booking, time_slot, time_set_by, time_set_at, created_at FROM ${getCurrentSchema()}.bookings ORDER BY created_at DESC`)
       );
       const bookings = result.rows.map((row: any) => ({
         id: row.id as string,
         memberId: row.member_id as string,
         memberName: row.member_name as string,
         date: row.date as string,
+        isSundayBooking: row.is_sunday_booking || false,
+        timeSlot: row.time_slot || null,
+        timeSetBy: row.time_set_by || null,
+        timeSetAt: row.time_set_at ? new Date(row.time_set_at) : null,
         createdAt: new Date(row.created_at as string)
       }));
       return bookings;
@@ -249,13 +258,17 @@ export class DatabaseStorage implements IStorage {
   async getBookingsByDate(date: string): Promise<Booking[]> {
     try {
       const result = await db.execute(
-        sql.raw(`SELECT id, member_id, member_name, date, created_at FROM ${getCurrentSchema()}.bookings WHERE date = '${date}' ORDER BY created_at DESC`)
+        sql.raw(`SELECT id, member_id, member_name, date, is_sunday_booking, time_slot, time_set_by, time_set_at, created_at FROM ${getCurrentSchema()}.bookings WHERE date = '${date}' ORDER BY created_at DESC`)
       );
       return result.rows.map((row: any) => ({
         id: row.id as string,
         memberId: row.member_id as string,
         memberName: row.member_name as string,
         date: row.date as string,
+        isSundayBooking: row.is_sunday_booking || false,
+        timeSlot: row.time_slot || null,
+        timeSetBy: row.time_set_by || null,
+        timeSetAt: row.time_set_at ? new Date(row.time_set_at) : null,
         createdAt: new Date(row.created_at as string)
       }));
     } catch (error) {
@@ -267,13 +280,17 @@ export class DatabaseStorage implements IStorage {
   async getBookingsByMember(memberId: string): Promise<Booking[]> {
     try {
       const result = await db.execute(
-        sql.raw(`SELECT id, member_id, member_name, date, created_at FROM ${getCurrentSchema()}.bookings WHERE member_id = '${memberId}' ORDER BY created_at DESC`)
+        sql.raw(`SELECT id, member_id, member_name, date, is_sunday_booking, time_slot, time_set_by, time_set_at, created_at FROM ${getCurrentSchema()}.bookings WHERE member_id = '${memberId}' ORDER BY created_at DESC`)
       );
       return result.rows.map((row: any) => ({
         id: row.id as string,
         memberId: row.member_id as string,
         memberName: row.member_name as string,
         date: row.date as string,
+        isSundayBooking: row.is_sunday_booking || false,
+        timeSlot: row.time_slot || null,
+        timeSetBy: row.time_set_by || null,
+        timeSetAt: row.time_set_at ? new Date(row.time_set_at) : null,
         createdAt: new Date(row.created_at as string)
       }));
     } catch (error) {
@@ -286,9 +303,9 @@ export class DatabaseStorage implements IStorage {
     try {
       const bookingId = crypto.randomUUID();
       const result = await db.execute(
-        sql.raw(`INSERT INTO ${getCurrentSchema()}.bookings (id, member_id, member_name, date, created_at) 
-                 VALUES ('${bookingId}', '${booking.memberId}', '${booking.memberName}', '${booking.date}', NOW()) 
-                 RETURNING id, member_id, member_name, date, created_at`)
+        sql.raw(`INSERT INTO ${getCurrentSchema()}.bookings (id, member_id, member_name, date, is_sunday_booking, time_slot, time_set_by, time_set_at, created_at) 
+                 VALUES ('${bookingId}', '${booking.memberId}', '${booking.memberName}', '${booking.date}', ${booking.isSundayBooking || false}, ${booking.timeSlot ? `'${booking.timeSlot}'` : 'NULL'}, ${booking.timeSetBy ? `'${booking.timeSetBy}'` : 'NULL'}, ${booking.timeSetAt ? `'${booking.timeSetAt.toISOString()}'` : 'NULL'}, NOW()) 
+                 RETURNING id, member_id, member_name, date, is_sunday_booking, time_slot, time_set_by, time_set_at, created_at`)
       );
       const row: any = result.rows[0];
       return {
@@ -296,6 +313,10 @@ export class DatabaseStorage implements IStorage {
         memberId: row.member_id as string,
         memberName: row.member_name as string,
         date: row.date as string,
+        isSundayBooking: row.is_sunday_booking || false,
+        timeSlot: row.time_slot || null,
+        timeSetBy: row.time_set_by || null,
+        timeSetAt: row.time_set_at ? new Date(row.time_set_at) : null,
         createdAt: new Date(row.created_at as string)
       };
     } catch (error) {
@@ -312,6 +333,68 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       console.error('Error deleting booking:', error);
+      return false;
+    }
+  }
+
+  async getSundayBookings(): Promise<Booking[]> {
+    try {
+      const result = await db.execute(
+        sql.raw(`SELECT id, member_id, member_name, date, is_sunday_booking, time_slot, time_set_by, time_set_at, created_at FROM ${getCurrentSchema()}.bookings WHERE is_sunday_booking = true ORDER BY date ASC, created_at ASC`)
+      );
+      return result.rows.map((row: any) => ({
+        id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
+        date: row.date as string,
+        isSundayBooking: row.is_sunday_booking || false,
+        timeSlot: row.time_slot || null,
+        timeSetBy: row.time_set_by || null,
+        timeSetAt: row.time_set_at ? new Date(row.time_set_at) : null,
+        createdAt: new Date(row.created_at as string)
+      }));
+    } catch (error) {
+      console.error('Error getting Sunday bookings:', error);
+      return [];
+    }
+  }
+
+  async getSundayBookingsByDate(date: string): Promise<Booking[]> {
+    try {
+      const result = await db.execute(
+        sql.raw(`SELECT id, member_id, member_name, date, is_sunday_booking, time_slot, time_set_by, time_set_at, created_at FROM ${getCurrentSchema()}.bookings WHERE date = '${date}' AND is_sunday_booking = true ORDER BY created_at ASC`)
+      );
+      return result.rows.map((row: any) => ({
+        id: row.id as string,
+        memberId: row.member_id as string,
+        memberName: row.member_name as string,
+        date: row.date as string,
+        isSundayBooking: row.is_sunday_booking || false,
+        timeSlot: row.time_slot || null,
+        timeSetBy: row.time_set_by || null,
+        timeSetAt: row.time_set_at ? new Date(row.time_set_at) : null,
+        createdAt: new Date(row.created_at as string)
+      }));
+    } catch (error) {
+      console.error('Error getting Sunday bookings by date:', error);
+      return [];
+    }
+  }
+
+  async updateTimeSlot(date: string, timeSlot: string, memberId: string): Promise<boolean> {
+    try {
+      const escapedTimeSlot = timeSlot.replace(/'/g, "''");
+      const now = new Date().toISOString();
+      
+      // Update all bookings for this date with the new time slot
+      await db.execute(
+        sql.raw(`UPDATE ${getCurrentSchema()}.bookings 
+                 SET time_slot = '${escapedTimeSlot}', time_set_by = '${memberId}', time_set_at = '${now}' 
+                 WHERE date = '${date}' AND is_sunday_booking = true`)
+      );
+      return true;
+    } catch (error) {
+      console.error('Error updating time slot:', error);
       return false;
     }
   }
