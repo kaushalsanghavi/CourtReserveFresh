@@ -13,12 +13,63 @@ export const isSundayDate = (dateString: string): boolean => {
 };
 
 /**
- * Validates time slot format (e.g., "8:00 AM - 9:00 AM")
+ * Validates time slot format - now much more flexible
+ * Accepts formats like:
+ * - "8:00 AM - 9:00 AM" (standard)
+ * - "8:00 am - 9:00 am" (lowercase)
+ * - "8 - 9 AM" (no minutes, shared AM/PM)
+ * - "8 - 9" (simple format)
+ * - "7:30 - 9:00" (mixed format)
  */
 export const isValidTimeSlot = (timeSlot: string): boolean => {
-  // Matches formats like "8:00 AM - 9:00 AM", "10:30 AM - 11:30 AM", etc.
-  const timeSlotRegex = /^(1[0-2]|[1-9]):[0-5][0-9] (AM|PM) - (1[0-2]|[1-9]):[0-5][0-9] (AM|PM)$/;
-  return timeSlotRegex.test(timeSlot);
+  if (!timeSlot || typeof timeSlot !== 'string') {
+    return false;
+  }
+
+  const trimmed = timeSlot.trim();
+  
+  // Must contain a dash to separate start and end times
+  if (!trimmed.includes('-')) {
+    return false;
+  }
+
+  const parts = trimmed.split('-');
+  if (parts.length !== 2) {
+    return false;
+  }
+
+  const startPart = parts[0].trim();
+  const endPart = parts[1].trim();
+
+  // Both parts must be non-empty
+  if (!startPart || !endPart) {
+    return false;
+  }
+
+  // Helper function to validate a time part (more flexible)
+  const isValidTimePart = (timePart: string): boolean => {
+    // Remove AM/PM and normalize case
+    const cleanTime = timePart.replace(/\s*(am|pm|AM|PM)\s*$/i, '').trim();
+    
+    // Check if it's just a number (like "8" or "9")
+    if (/^\d{1,2}$/.test(cleanTime)) {
+      const hour = parseInt(cleanTime, 10);
+      return hour >= 1 && hour <= 12;
+    }
+    
+    // Check if it's in HH:MM format (like "8:00" or "10:30")
+    if (/^\d{1,2}:\d{2}$/.test(cleanTime)) {
+      const [hourStr, minuteStr] = cleanTime.split(':');
+      const hour = parseInt(hourStr, 10);
+      const minute = parseInt(minuteStr, 10);
+      return hour >= 1 && hour <= 12 && minute >= 0 && minute <= 59;
+    }
+    
+    return false;
+  };
+
+  // Validate both time parts
+  return isValidTimePart(startPart) && isValidTimePart(endPart);
 };
 
 /**
@@ -138,7 +189,7 @@ export const validateSundayBookingRequest = (data: {
   
   // Check time slot format if provided
   if (data.timeSlot && !isValidTimeSlot(data.timeSlot)) {
-    errors.push("Time slot must be in format 'HH:MM AM/PM - HH:MM AM/PM'");
+    errors.push("Time slot must be in format like '8:00 AM - 9:00 AM', '8 - 9 AM', or '8 - 9'");
   }
   
   return {

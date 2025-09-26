@@ -1,4 +1,4 @@
-import SundayBookingCard from "../SundayBookingCard";
+import SundayBookingSection, { SundayBookingCard } from "../SundayBookingCard";
 import type { SundayBookingGroup } from "@shared/schema";
 
 // Demo data for different states
@@ -55,6 +55,7 @@ const fullState: SundayBookingGroup = {
 export default function SundayBookingCardDemo() {
   const mockProps = {
     selectedMemberId: "member-1",
+    selectedMemberName: "Jane Doe",
     onBookSlot: (date: string, timeSlot?: string) => {
       console.log("Book slot:", date, timeSlot);
     },
@@ -68,38 +69,75 @@ export default function SundayBookingCardDemo() {
     isCancelling: false,
   };
 
+  const allSundayBookings = [
+    emptyState,
+    activeState,
+    fullState,
+    {
+      ...activeState,
+      date: "2025-02-02",
+      participants: [
+        {
+          id: "booking-1",
+          memberId: "member-1", // Same as selectedMemberId
+          memberName: "Current User",
+          date: "2025-02-02",
+          isSundayBooking: true,
+          timeSlot: "8:00 AM - 9:00 AM",
+          timeSetBy: "member-1",
+          timeSetAt: new Date(),
+          createdAt: new Date(),
+        },
+      ],
+    }
+  ];
+
   return (
     <div className="p-8 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-8">SundayBookingCard Component Demo</h1>
+      <h1 className="text-2xl font-bold mb-8">Sunday Booking Component Demo</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl">
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Empty State</h2>
-          <SundayBookingCard
-            sundayBooking={emptyState}
-            {...mockProps}
-          />
-        </div>
-        
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Active State</h2>
-          <SundayBookingCard
-            sundayBooking={activeState}
-            {...mockProps}
-          />
-        </div>
-        
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Full State</h2>
-          <SundayBookingCard
-            sundayBooking={fullState}
-            {...mockProps}
-          />
+      {/* Collapsible Section Demo - matches approved mockup */}
+      <div className="mb-12">
+        <h2 className="text-xl font-semibold mb-4">Collapsible Section (Approved Design)</h2>
+        <SundayBookingSection
+          sundayBookings={allSundayBookings}
+          {...mockProps}
+          isOpen={true}
+        />
+      </div>
+
+      {/* Individual Card States */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-4">Individual Card States</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Empty State</h3>
+            <SundayBookingCard
+              sundayBooking={emptyState}
+              {...mockProps}
+            />
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Active State</h3>
+            <SundayBookingCard
+              sundayBooking={activeState}
+              {...mockProps}
+            />
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Full State</h3>
+            <SundayBookingCard
+              sundayBooking={fullState}
+              {...mockProps}
+            />
+          </div>
         </div>
       </div>
       
       <div className="mt-8">
-        <h2 className="text-lg font-semibold mb-4">User Has Booking (Cancel State)</h2>
+        <h3 className="text-lg font-semibold mb-4">User Has Booking (Cancel State)</h3>
         <div className="max-w-sm">
           <SundayBookingCard
             sundayBooking={{

@@ -35,18 +35,31 @@ describe('Sunday Booking Helper Functions', () => {
 
   describe('isValidTimeSlot', () => {
     it('should validate correct time slot formats', () => {
+      // Standard formats
       expect(isValidTimeSlot('8:00 AM - 9:00 AM')).toBe(true);
       expect(isValidTimeSlot('10:30 AM - 11:30 AM')).toBe(true);
       expect(isValidTimeSlot('2:15 PM - 3:15 PM')).toBe(true);
       expect(isValidTimeSlot('12:00 PM - 1:00 PM')).toBe(true);
+      
+      // Flexible formats (now allowed)
+      expect(isValidTimeSlot('8:00 - 9:00')).toBe(true); // No AM/PM
+      expect(isValidTimeSlot('8 - 9 AM')).toBe(true); // No minutes, shared AM/PM
+      expect(isValidTimeSlot('8 - 9')).toBe(true); // Simple format
+      expect(isValidTimeSlot('7:30 - 9:00')).toBe(true); // Mixed format
+      expect(isValidTimeSlot('8:00 am - 9:00 am')).toBe(true); // Lowercase
+      expect(isValidTimeSlot('8:00 Am - 9:00 Pm')).toBe(true); // Mixed case
     });
 
     it('should reject invalid time slot formats', () => {
-      expect(isValidTimeSlot('8:00 - 9:00')).toBe(false); // Missing AM/PM
-      expect(isValidTimeSlot('8 AM - 9 AM')).toBe(false); // Missing minutes
       expect(isValidTimeSlot('25:00 AM - 26:00 AM')).toBe(false); // Invalid hours
       expect(isValidTimeSlot('8:60 AM - 9:60 AM')).toBe(false); // Invalid minutes
       expect(isValidTimeSlot('8:00 AM')).toBe(false); // Missing end time
+      expect(isValidTimeSlot('8:00 AM -')).toBe(false); // Missing end time
+      expect(isValidTimeSlot('- 9:00 AM')).toBe(false); // Missing start time
+      expect(isValidTimeSlot('')).toBe(false); // Empty string
+      expect(isValidTimeSlot('invalid')).toBe(false); // No dash
+      expect(isValidTimeSlot('0 - 1')).toBe(false); // Invalid hour (0)
+      expect(isValidTimeSlot('13 - 14')).toBe(false); // Invalid hour (>12)
     });
   });
 
@@ -157,15 +170,30 @@ describe('Sunday Booking Validation Schemas', () => {
       };
 
       expect(() => timeUpdateSchema.parse(validUpdate)).not.toThrow();
+      
+      // Test flexible formats
+      const flexibleUpdate = {
+        timeSlot: '8 - 9',
+        memberId: 'member-1',
+      };
+
+      expect(() => timeUpdateSchema.parse(flexibleUpdate)).not.toThrow();
     });
 
     it('should reject invalid time slot formats', () => {
       const invalidUpdate = {
-        timeSlot: '10:00 - 11:00', // Missing AM/PM
+        timeSlot: '25:00 - 26:00', // Invalid hours
         memberId: 'member-1',
       };
 
       expect(() => timeUpdateSchema.parse(invalidUpdate)).toThrow();
+      
+      const emptyUpdate = {
+        timeSlot: '', // Empty string
+        memberId: 'member-1',
+      };
+
+      expect(() => timeUpdateSchema.parse(emptyUpdate)).toThrow();
     });
   });
 

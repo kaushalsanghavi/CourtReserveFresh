@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunday Booking Component Demo</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .booking-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        .booking-card.empty {
+            border: 2px dashed #d1d5db;
+            background: #f9fafb;
+        }
+        .booking-card.full {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        .btn-primary:hover {
+            background: #bbf7d0;
+        }
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        .btn-danger {
+            background: #fecaca;
+            color: #dc2626;
+        }
+        .btn-danger:hover {
+            background: #fca5a5;
+        }
+        .btn-disabled {
+            background: #f3f4f6;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+        .time-slot {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // Helper function to determine if booking is empty
+        const isEmpty = (participants, timeSlot) => participants.length === 0 && !timeSlot;
+
+        function SundayBookingCard({ sundayBooking, selectedMemberId, onBookSlot, onCancelBooking, onEditTime, isBooking, isCancelling }) {
+            const { date, timeSlot, participants, availableSpots } = sundayBooking;
+            
+            // Format date for display
+            const formatDate = (dateStr) => {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+            };
+
+            // Check if current user has a booking
+            const userBooking = participants.find(p => p.memberId === selectedMemberId);
+            const isEmpty = participants.length === 0;
+            const isFull = availableSpots === 0;
+
+            // Determine card state class
+            let cardClass = 'booking-card';
+            if (isEmpty) cardClass += ' empty';
+            else if (isFull) cardClass += ' full';
+
+            return (
+                <div className={cardClass}>
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                                {formatDate(date)}
+                            </h3>
+                            {timeSlot && (
+                                <div className="time-slot mt-1">
+                                    {timeSlot}
+                                </div>
+                            )}
+                        </div>
+                        <div className="text-right">
+                            <div className="text-sm text-gray-500">
+                                {participants.length}/6 players
+                            </div>
+                            <div className="text-xs text-gray-400">
+                                {availableSpots} spots left
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Participants */}
+                    {participants.length > 0 && (
+                        <div className="mb-4">
+                            <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">PLAYERS</div>
+                            <div className="flex flex-wrap gap-1">
+                                {participants.map((participant, index) => (
+                                    <span
+                                        key={participant.id}
+                                        className={`px-2 py-1 text-xs rounded ${
+                                            participant.memberId === selectedMemberId 
+                                                ? "bg-green-100 text-green-700 font-medium" 
+                                                : "bg-gray-100 text-gray-700"
+                                        }`}
+                                    >
+                                        {participant.memberName}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Empty state message */}
+                    {isEmpty && (
+                        <div className="text-center py-4 text-gray-500">
+                            <div className="text-2xl mb-2">🏸</div>
+                            <div className="text-sm">No bookings yet</div>
+                            <div className="text-xs">Be the first to book!</div>
+                        </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-2 mt-4">
+                        {userBooking ? (
+                            // User has booking - show cancel button
+                            <button
+                                className={`btn flex-1 ${isCancelling ? 'btn-disabled' : 'btn-danger'}`}
+                                onClick={() => onCancelBooking(selectedMemberId, date)}
+                                disabled={isCancelling}
+                            >
+                                {isCancelling ? 'Cancelling...' : 'Cancel Booking'}
+                            </button>
+                        ) : (
+                            // User doesn't have booking - show book button
+                            !isFull && (
+                                <button
+                                    className={`btn flex-1 ${isBooking ? 'btn-disabled' : 'btn-primary'}`}
+                                    onClick={() => {
+                                        if (!timeSlot) {
+                                            // Need to set time slot
+                                            const newTimeSlot = prompt('Enter time slot (e.g., "9:00 AM - 10:00 AM"):');
+                                            if (newTimeSlot) {
+                                                onBookSlot(date, newTimeSlot);
+                                            }
+                                        } else {
+                                            onBookSlot(date);
+                                        }
+                                    }}
+                                    disabled={isBooking}
+                                >
+                                    {isBooking ? 'Booking...' : (isEmpty ? 'Book & Set Time' : 'Book Slot')}
+                                </button>
+                            )
+                        )}
+
+                        {/* Edit time button (only if there are bookings) */}
+                        {participants.length > 0 && (
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => onEditTime(date, timeSlot)}
+                                title="Edit time slot"
+                            >
+                                ⏰
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Full state message */}
+                    {isFull && !userBooking && (
+                        <div className="text-center mt-2 text-red-600 text-sm font-medium">
+                            Fully Booked
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function SundayBookingSection({ sundayBookings, selectedMemberId, onBookSlot, onCancelBooking, onEditTime, isBooking, isCancelling, isOpen = true }) {
+            const [isExpanded, setIsExpanded] = useState(isOpen);
+
+            return (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+                    <details 
+                        className="bg-gray-50 rounded-lg border" 
+                        open={isExpanded}
+                        onToggle={(e) => setIsExpanded(e.target.open)}
+                    >
+                        <summary className="p-4 cursor-pointer flex justify-between items-center list-none">
+                            <h3 className="text-lg font-medium text-gray-800">
+                                Ad-hoc Sunday Bookings (Members Only)
+                            </h3>
+                            <svg 
+                                className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
+                        </summary>
+                        
+                        <div className="p-4 border-t grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {sundayBookings.map((sundayBooking, index) => (
+                                <SundayBookingCard
+                                    key={sundayBooking.date}
+                                    sundayBooking={sundayBooking}
+                                    selectedMemberId={selectedMemberId}
+                                    onBookSlot={onBookSlot}
+                                    onCancelBooking={onCancelBooking}
+                                    onEditTime={onEditTime}
+                                    isBooking={isBooking}
+                                    isCancelling={isCancelling}
+                                />
+                            ))}
+                            
+                            {sundayBookings.length === 0 && (
+                                <div className="col-span-full text-center py-8 text-gray-500">
+                                    <p>No upcoming Sunday bookings available</p>
+                                </div>
+                            )}
+                        </div>
+                    </details>
+                </div>
+            );
+        }
+
+        function Demo() {
+            const [isBooking, setIsBooking] = useState(false);
+            const [isCancelling, setIsCancelling] = useState(false);
+
+            // Demo data for different states
+            const emptyState = {
+                date: "2025-01-12",
+                timeSlot: null,
+                timeSetBy: null,
+                timeSetAt: null,
+                participants: [],
+                availableSpots: 6,
+            };
+
+            const activeState = {
+                date: "2025-01-19",
+                timeSlot: "8:00 AM - 9:00 AM",
+                timeSetBy: "member-2",
+                timeSetAt: new Date(),
+                participants: [
+                    {
+                        id: "booking-1",
+                        memberId: "member-2",
+                        memberName: "John Smith",
+                        date: "2025-01-19",
+                        isSundayBooking: true,
+                        timeSlot: "8:00 AM - 9:00 AM",
+                        timeSetBy: "member-2",
+                        timeSetAt: new Date(),
+                        createdAt: new Date(),
+                    },
+                    {
+                        id: "booking-2",
+                        memberId: "member-3",
+                        memberName: "Jane Doe",
+                        date: "2025-01-19",
+                        isSundayBooking: true,
+                        timeSlot: "8:00 AM - 9:00 AM",
+                        timeSetBy: "member-2",
+                        timeSetAt: new Date(),
+                        createdAt: new Date(),
+                    },
+                ],
+                availableSpots: 4,
+            };
+
+            const fullState = {
+                date: "2025-01-26",
+                timeSlot: "10:00 AM - 11:00 AM",
+                timeSetBy: "member-1",
+                timeSetAt: new Date(),
+                participants: Array.from({ length: 6 }, (_, i) => ({
+                    id: `booking-${i + 1}`,
+                    memberId: `member-${i + 1}`,
+                    memberName: `Player ${i + 1}`,
+                    date: "2025-01-26",
+                    isSundayBooking: true,
+                    timeSlot: "10:00 AM - 11:00 AM",
+                    timeSetBy: "member-1",
+                    timeSetAt: new Date(),
+                    createdAt: new Date(),
+                })),
+                availableSpots: 0,
+            };
+
+            const userBookingState = {
+                date: "2025-02-02",
+                timeSlot: "9:00 AM - 10:00 AM",
+                timeSetBy: "member-1",
+                timeSetAt: new Date(),
+                participants: [
+                    {
+                        id: "booking-1",
+                        memberId: "member-1", // Same as selectedMemberId
+                        memberName: "Current User",
+                        date: "2025-02-02",
+                        isSundayBooking: true,
+                        timeSlot: "9:00 AM - 10:00 AM",
+                        timeSetBy: "member-1",
+                        timeSetAt: new Date(),
+                        createdAt: new Date(),
+                    },
+                    {
+                        id: "booking-2",
+                        memberId: "member-4",
+                        memberName: "Alice Johnson",
+                        date: "2025-02-02",
+                        isSundayBooking: true,
+                        timeSlot: "9:00 AM - 10:00 AM",
+                        timeSetBy: "member-1",
+                        timeSetAt: new Date(),
+                        createdAt: new Date(),
+                    },
+                ],
+                availableSpots: 4,
+            };
+
+            const mockProps = {
+                selectedMemberId: "member-1",
+                onBookSlot: (date, timeSlot) => {
+                    console.log("Book slot:", date, timeSlot);
+                    setIsBooking(true);
+                    setTimeout(() => setIsBooking(false), 1000);
+                    alert(`Booking slot for ${date}${timeSlot ? ` at ${timeSlot}` : ''}`);
+                },
+                onCancelBooking: (memberId, date) => {
+                    console.log("Cancel booking:", memberId, date);
+                    setIsCancelling(true);
+                    setTimeout(() => setIsCancelling(false), 1000);
+                    alert(`Cancelling booking for ${date}`);
+                },
+                onEditTime: (date, currentTimeSlot) => {
+                    console.log("Edit time:", date, currentTimeSlot);
+                    const newTimeSlot = prompt(`Edit time slot for ${date}:`, currentTimeSlot || '');
+                    if (newTimeSlot) {
+                        alert(`Time slot updated to: ${newTimeSlot}`);
+                    }
+                },
+                isBooking,
+                isCancelling,
+            };
+
+            const allSundayBookings = [emptyState, activeState, fullState, userBookingState];
+
+            return (
+                <div className="p-8 min-h-screen bg-gray-100">
+                    <div className="max-w-6xl mx-auto">
+                        <h1 className="text-3xl font-bold mb-2 text-gray-900">Sunday Booking Component Demo</h1>
+                        <p className="text-gray-600 mb-8">Interactive preview matching the approved mockup design</p>
+                        
+                        {/* Collapsible Section Demo - matches approved mockup */}
+                        <div className="mb-12">
+                            <h2 className="text-xl font-semibold mb-4 text-gray-800">Collapsible Section (Approved Design)</h2>
+                            <SundayBookingSection
+                                sundayBookings={allSundayBookings}
+                                selectedMemberId="member-1"
+                                onBookSlot={mockProps.onBookSlot}
+                                onCancelBooking={mockProps.onCancelBooking}
+                                onEditTime={mockProps.onEditTime}
+                                isBooking={isBooking}
+                                isCancelling={isCancelling}
+                                isOpen={true}
+                            />
+                        </div>
+
+                        {/* Individual Card States */}
+                        <div className="mb-8">
+                            <h2 className="text-xl font-semibold mb-4 text-gray-800">Individual Card States</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-4 text-gray-800">Empty State</h3>
+                                    <SundayBookingCard
+                                        sundayBooking={emptyState}
+                                        {...mockProps}
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-4 text-gray-800">Active State (2/6 players)</h3>
+                                    <SundayBookingCard
+                                        sundayBooking={activeState}
+                                        {...mockProps}
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-4 text-gray-800">Full State (6/6 players)</h3>
+                                    <SundayBookingCard
+                                        sundayBooking={fullState}
+                                        {...mockProps}
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-4 text-gray-800">User Has Booking (Cancel State)</h3>
+                                    <SundayBookingCard
+                                        sundayBooking={userBookingState}
+                                        {...mockProps}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-12 p-6 bg-white rounded-lg shadow-sm border">
+                            <h3 className="text-lg font-semibold mb-4">Component Features</h3>
+                            <ul className="space-y-2 text-sm text-gray-600">
+                                <li>• <strong>Collapsible Section:</strong> Matches approved mockup with accordion behavior</li>
+                                <li>• <strong>Consistent Colors:</strong> Uses same gray/green palette as main app</li>
+                                <li>• <strong>Empty State:</strong> Shows when no one has booked yet, prompts for time slot</li>
+                                <li>• <strong>Active State:</strong> Shows current participants and available spots</li>
+                                <li>• <strong>Full State:</strong> Indicates when all 6 spots are taken</li>
+                                <li>• <strong>User Booking:</strong> Shows cancel option when user has already booked</li>
+                                <li>• <strong>Time Management:</strong> Edit time slot button for existing bookings</li>
+                                <li>• <strong>Interactive:</strong> Click buttons to see booking/cancelling states</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<Demo />, document.getElementById('root'));
+    </script>
+</body>
+</html>

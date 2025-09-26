@@ -227,6 +227,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           deviceInfo,
         });
 
+        // If this member set the time slot (first booking), log that activity too
+        if (timeSlotInfo.timeSetBy === memberId && timeSlotInfo.timeSlot) {
+          await storage.createActivity({
+            memberId,
+            memberName,
+            action: `set time slot to ${timeSlotInfo.timeSlot} for`,
+            date,
+            deviceInfo,
+          });
+        }
+
         res.json(booking);
       }
     } catch (error) {

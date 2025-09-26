@@ -33,6 +33,16 @@
                         <h4 class="font-medium text-gray-900">Sun, Jan 12</h4>
                         <div class="text-center p-4 bg-gray-50 rounded-md"><p class="font-medium text-gray-700">No Time Set</p></div>
                         <button class="w-full font-medium bg-green-100 text-green-700 hover:bg-green-200 py-2 rounded-lg">Book & Set Time</button>
+                        
+                        <!-- Comments & History Actions (same as weekday cards) -->
+                        <div class="flex gap-3">
+                            <button class="flex-1 flex items-center justify-center bg-transparent border-transparent hover:bg-gray-50 rounded-lg aspect-square h-12">
+                                <i data-lucide="message-circle" class="w-5 h-5 text-gray-400"></i>
+                            </button>
+                            <button class="flex-1 flex items-center justify-center bg-transparent border-transparent hover:bg-gray-50 rounded-lg aspect-square h-12">
+                                <i data-lucide="history" class="w-5 h-5 text-gray-400"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Sunday Card: State 2 (Time Set & Partially Booked) -->
@@ -47,6 +57,47 @@
                             <div class="flex flex-wrap gap-1"><span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">John S.</span></div>
                         </div>
                         <button class="w-full font-medium bg-green-100 text-green-700 hover:bg-green-200 py-2 rounded-lg">Book Slot</button>
+                        
+                        <!-- Comments & History Actions (same as weekday cards) -->
+                        <div class="flex gap-3">
+                            <button class="flex-1 flex items-center justify-center bg-transparent border-transparent hover:bg-gray-50 rounded-lg aspect-square h-12">
+                                <i data-lucide="message-circle" class="w-5 h-5 text-gray-400"></i>
+                            </button>
+                            <button class="flex-1 flex items-center justify-center bg-transparent border-transparent hover:bg-gray-50 rounded-lg aspect-square h-12">
+                                <i data-lucide="history" class="w-5 h-5 text-gray-400"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sunday Card: State 3 (Fully Booked) -->
+                    <div class="day-card space-y-3">
+                        <div class="flex justify-between items-center"><h4 class="font-medium text-gray-900">Sun, Jan 26</h4><span class="text-sm font-medium text-gray-600">6/6</span></div>
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                            <p class="text-sm font-medium text-gray-800">9:00 AM - 10:00 AM</p>
+                            <button class="text-gray-500 hover:text-gray-800"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">PLAYERS</p>
+                            <div class="flex flex-wrap gap-1">
+                                <span class="px-2 py-1 text-xs rounded bg-green-100 text-green-700 font-medium">Jane D.</span>
+                                <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">John S.</span>
+                                <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">Mike R.</span>
+                                <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">Sarah L.</span>
+                                <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">Tom W.</span>
+                                <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">Lisa M.</span>
+                            </div>
+                        </div>
+                        <button class="w-full font-medium bg-gray-100 text-gray-500 cursor-not-allowed py-2 rounded-lg" disabled>Fully Booked</button>
+                        
+                        <!-- Comments & History Actions (same as weekday cards) -->
+                        <div class="flex gap-3">
+                            <button class="flex-1 flex items-center justify-center bg-transparent border-transparent hover:bg-gray-50 rounded-lg aspect-square h-12">
+                                <i data-lucide="message-circle" class="w-5 h-5 text-gray-400"></i>
+                            </button>
+                            <button class="flex-1 flex items-center justify-center bg-transparent border-transparent hover:bg-gray-50 rounded-lg aspect-square h-12">
+                                <i data-lucide="history" class="w-5 h-5 text-gray-400"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </details>
@@ -64,10 +115,54 @@
                 <div class="space-y-4">
                     <div>
                         <label for="time-input" class="text-sm font-medium text-gray-700">Set Time Slot</label>
-                        <input type="text" id="time-input" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="e.g., 8:00 AM - 9:00 AM">
+                        <input type="text" id="time-input" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="e.g., 8:00 AM - 9:00 AM, 8 - 9 AM, or 8 - 9">
                         <p class="text-xs text-gray-500 mt-1">You are the first to book, so you get to set the time for everyone.</p>
                     </div>
                     <button class="w-full font-medium bg-green-100 text-green-700 hover:bg-green-200 py-2 rounded-lg">Confirm Booking</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Tracking Mockup -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Activity: Sunday Time Changes</h2>
+            <p class="text-sm text-gray-600 mb-6">Sunday time changes are tracked in the activity feed with member attribution.</p>
+            
+            <div class="space-y-3">
+                <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span class="text-xs font-medium text-blue-700">JD</span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-900">
+                            <span class="font-medium">Jane Doe</span> set time slot to <span class="font-medium">8:00 AM - 9:00 AM</span> for <span class="font-medium">Sun, Jan 12</span>
+                        </p>
+                        <p class="text-xs text-gray-500">2 minutes ago</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <span class="text-xs font-medium text-green-700">MR</span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-900">
+                            <span class="font-medium">Mike Roberts</span> changed time slot to <span class="font-medium">9:00 AM - 10:00 AM</span> for <span class="font-medium">Sun, Jan 19</span>
+                        </p>
+                        <p class="text-xs text-gray-500">1 hour ago</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span class="text-xs font-medium text-purple-700">SL</span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-900">
+                            <span class="font-medium">Sarah Lee</span> booked a Sunday slot for <span class="font-medium">Sun, Jan 19</span>
+                        </p>
+                        <p class="text-xs text-gray-500">2 hours ago</p>
+                    </div>
                 </div>
             </div>
         </div>

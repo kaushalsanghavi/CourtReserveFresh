@@ -125,7 +125,7 @@ export const bookSlotSchema = z.object({
 // Schema for updating time slots (Sunday bookings only)
 export const timeUpdateSchema = z.object({
   timeSlot: z.string().min(1, "Time slot is required").refine(isValidTimeSlot, {
-    message: "Time slot must be in format 'HH:MM AM/PM - HH:MM AM/PM'",
+    message: "Time slot must be in format like '8:00 AM - 9:00 AM', '8 - 9 AM', or '8 - 9'",
   }),
   memberId: z.string().min(1, "Member ID is required"),
 });
@@ -136,7 +136,7 @@ export const sundayBookingWithTimeSchema = z.object({
   memberName: z.string().min(1, "Member name is required"),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
   timeSlot: z.string().min(1, "Time slot is required for Sunday bookings").refine(isValidTimeSlot, {
-    message: "Time slot must be in format 'HH:MM AM/PM - HH:MM AM/PM'",
+    message: "Time slot must be in format like '8:00 AM - 9:00 AM', '8 - 9 AM', or '8 - 9'",
   }),
 }).refine((data) => {
   // Ensure this is actually a Sunday

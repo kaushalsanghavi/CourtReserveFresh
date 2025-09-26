@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunday Booking API Tester</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .response-box {
+            background: #1f2937;
+            color: #f9fafb;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 16px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .endpoint-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">Sunday Booking API Tester</h1>
+        <p class="text-gray-600 mb-8">Test the Sunday booking API endpoints (make sure the server is running on port 5000)</p>
+
+        <!-- Get Sunday Bookings -->
+        <div class="endpoint-card">
+            <h2 class="text-xl font-semibold mb-4">GET /api/bookings?type=sunday</h2>
+            <p class="text-gray-600 mb-4">Fetch upcoming Sunday bookings</p>
+            <button onclick="getSundayBookings()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Get Sunday Bookings
+            </button>
+            <div id="sunday-bookings-response" class="response-box mt-4 hidden"></div>
+        </div>
+
+        <!-- Create Sunday Booking -->
+        <div class="endpoint-card">
+            <h2 class="text-xl font-semibold mb-4">POST /api/bookings (Sunday)</h2>
+            <p class="text-gray-600 mb-4">Create a new Sunday booking</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <input type="text" id="member-id" placeholder="Member ID" class="border rounded px-3 py-2">
+                <input type="text" id="member-name" placeholder="Member Name" class="border rounded px-3 py-2">
+                <input type="date" id="booking-date" class="border rounded px-3 py-2">
+                <input type="text" id="time-slot" placeholder="Time Slot (e.g., 9:00 AM - 10:00 AM)" class="border rounded px-3 py-2">
+            </div>
+            <button onclick="createSundayBooking()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                Create Booking
+            </button>
+            <div id="create-booking-response" class="response-box mt-4 hidden"></div>
+        </div>
+
+        <!-- Update Time Slot -->
+        <div class="endpoint-card">
+            <h2 class="text-xl font-semibold mb-4">PUT /api/bookings/:date/time</h2>
+            <p class="text-gray-600 mb-4">Update time slot for a Sunday booking</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <input type="date" id="update-date" class="border rounded px-3 py-2">
+                <input type="text" id="new-time-slot" placeholder="New Time Slot" class="border rounded px-3 py-2">
+                <input type="text" id="update-member-id" placeholder="Member ID" class="border rounded px-3 py-2">
+            </div>
+            <button onclick="updateTimeSlot()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                Update Time Slot
+            </button>
+            <div id="update-time-response" class="response-box mt-4 hidden"></div>
+        </div>
+
+        <!-- Get Members -->
+        <div class="endpoint-card">
+            <h2 class="text-xl font-semibold mb-4">GET /api/members</h2>
+            <p class="text-gray-600 mb-4">Get all members (for reference)</p>
+            <button onclick="getMembers()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                Get Members
+            </button>
+            <div id="members-response" class="response-box mt-4 hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+
+        function showResponse(elementId, data, error = false) {
+            const element = document.getElementById(elementId);
+            element.classList.remove('hidden');
+            element.style.color = error ? '#ef4444' : '#10b981';
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function getSundayBookings() {
+            try {
+                const response = await fetch(`${API_BASE}/bookings?type=sunday`);
+                const data = await response.json();
+                showResponse('sunday-bookings-response', data);
+            } catch (error) {
+                showResponse('sunday-bookings-response', { error: error.message }, true);
+            }
+        }
+
+        async function createSundayBooking() {
+            const memberId = document.getElementById('member-id').value;
+            const memberName = document.getElementById('member-name').value;
+            const date = document.getElementById('booking-date').value;
+            const timeSlot = document.getElementById('time-slot').value;
+
+            if (!memberId || !memberName || !date) {
+                alert('Please fill in Member ID, Member Name, and Date');
+                return;
+            }
+
+            // Ensure the date is a Sunday
+            const selectedDate = new Date(date);
+            if (selectedDate.getDay() !== 0) {
+                alert('Please select a Sunday date');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/bookings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        memberId,
+                        memberName,
+                        date,
+                        timeSlot: timeSlot || undefined,
+                    }),
+                });
+                const data = await response.json();
+                showResponse('create-booking-response', data, !response.ok);
+            } catch (error) {
+                showResponse('create-booking-response', { error: error.message }, true);
+            }
+        }
+
+        async function updateTimeSlot() {
+            const date = document.getElementById('update-date').value;
+            const timeSlot = document.getElementById('new-time-slot').value;
+            const memberId = document.getElementById('update-member-id').value;
+
+            if (!date || !timeSlot || !memberId) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/bookings/${date}/time`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        timeSlot,
+                        memberId,
+                    }),
+                });
+                const data = await response.json();
+                showResponse('update-time-response', data, !response.ok);
+            } catch (error) {
+                showResponse('update-time-response', { error: error.message }, true);
+            }
+        }
+
+        async function getMembers() {
+            try {
+                const response = await fetch(`${API_BASE}/members`);
+                const data = await response.json();
+                showResponse('members-response', data);
+            } catch (error) {
+                showResponse('members-response', { error: error.message }, true);
+            }
+        }
+
+        // Set default date to next Sunday
+        function setDefaultDate() {
+            const today = new Date();
+            const nextSunday = new Date(today);
+            const daysUntilSunday = (7 - today.getDay()) % 7;
+            nextSunday.setDate(today.getDate() + (daysUntilSunday === 0 ? 7 : daysUntilSunday));
+            
+            const dateString = nextSunday.toISOString().split('T')[0];
+            document.getElementById('booking-date').value = dateString;
+            document.getElementById('update-date').value = dateString;
+        }
+
+        // Initialize with default values
+        window.onload = function() {
+            setDefaultDate();
+            document.getElementById('member-id').value = 'member1';
+            document.getElementById('member-name').value = 'Test User';
+            document.getElementById('time-slot').value = '9:00 AM - 10:00 AM';
+            document.getElementById('new-time-slot').value = '10:00 AM - 11:00 AM';
+            document.getElementById('update-member-id').value = 'member1';
+        };
+    </script>
+</body>
+</html>

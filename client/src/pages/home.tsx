@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import TabNavigation from "@/components/TabNavigation";
 import QuickBooking, { SelectedMemberProvider } from "@/components/QuickBooking";
 import BookingCalendar from "@/components/BookingCalendar";
+import SundayBooking from "@/components/SundayBooking";
 import RecentActivity from "@/components/RecentActivity";
 import MonthlyParticipation from "@/components/MonthlyParticipation";
 
@@ -13,15 +14,16 @@ export default function Home() {
     <SelectedMemberProvider>
       <div className="min-h-screen bg-gray-50">
         <Header />
-        
+
         <main className="max-w-7xl mx-auto px-6 py-8">
           <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-          
+
           <QuickBooking />
-          
+
           {activeTab === "recent-activity" ? (
             <div data-testid="tab-recent-activity">
               <BookingCalendar />
+              <SundayBooking />
               <RecentActivity />
             </div>
           ) : (
