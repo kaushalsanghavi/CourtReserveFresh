@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +9,7 @@ import BookingHistory from "./BookingHistory";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { History, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Member, Booking, Comment } from "@shared/schema";
-import { format, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, setHours, setMinutes, subMonths } from "date-fns";
+import { format, parseISO, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, setHours, setMinutes, subMonths } from "date-fns";
 
 interface DayCardProps {
   date: Date;
@@ -19,10 +19,11 @@ interface DayCardProps {
   onCancelBooking: (memberId: string, date: string) => void;
   isBooking: boolean;
   isCancelling: boolean;
+  isBookLocked: boolean;
   selectedMemberId: string;
 }
 
-function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooking, isCancelling, selectedMemberId }: DayCardProps) {
+function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooking, isCancelling, isBookLocked, selectedMemberId }: DayCardProps) {
   const dateStr = format(date, "yyyy-MM-dd");
   const dayBookings = bookings.filter(b => b.date === dateStr);
   const isToday = isSameDay(date, new Date());
@@ -50,7 +51,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
   };
 
   const getButtonText = () => {
-    if (isBooking || isCancelling) {
+    if (isBooking || isCancelling || isBookLocked) {
       return hasSelectedMemberBooking ? "Cancelling..." : "Booking...";
     }
     if (isBookingDisabled && !hasSelectedMemberBooking) {
@@ -68,7 +69,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
 
   const isButtonDisabled = () => {
     if (!selectedMemberId) return true;
-    if (isBooking || isCancelling) return true;
+    if (isBooking || isCancelling || isBookLocked) return true;
     if (dayBookings.length >= 6 && !hasSelectedMemberBooking) return true;
     // Disable booking for past dates or today after 9:30 AM (but allow cancellation)
     if (isBookingDisabled && !hasSelectedMemberBooking) return true;
@@ -169,9 +170,27 @@ export default function BookingCalendar() {
   const queryClient = useQueryClient();
   const { selectedMemberId, selectedMember } = useSelectedMember();
   const [dateOffset, setDateOffset] = useState(0);
+  const bookingLockRef = useRef<Set<string>>(new Set());
+  const [bookingLocks, setBookingLocks] = useState<Record<string, true>>({});
 
   const { data: members = [] } = useQuery<Member[]>({ queryKey: ["/api/members"] });
   const { data: bookings = [] } = useQuery<Booking[]>({ queryKey: ["/api/bookings"] });
+
+  const isAlreadyBookedConflict = (error: Error) => {
+    const message = error.message || "";
+    return (
+      message.startsWith("409:") &&
+      message.toLowerCase().includes("already has a booking")
+    );
+  };
+
+  const formatShortDate = (dateStr: string) => {
+    try {
+      return format(parseISO(dateStr), "EEE, MMM d");
+    } catch {
+      return dateStr;
+    }
+  };
 
   const bookSlotMutation = useMutation({
     mutationFn: async (date: string) => {
@@ -185,10 +204,46 @@ export default function BookingCalendar() {
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, date: string) => {
+      if (isAlreadyBookedConflict(error)) {
+        toast({
+          title: "Already booked",
+          description: `You're all set for ${formatShortDate(date)}.`,
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+        return;
+      }
       toast({ title: "Booking failed", description: error.message, variant: "destructive" });
     },
   });
+
+  const lockBookingKey = (key: string) => {
+    bookingLockRef.current.add(key);
+    setBookingLocks((prev) => ({ ...prev, [key]: true }));
+  };
+
+  const unlockBookingKey = (key: string) => {
+    bookingLockRef.current.delete(key);
+    setBookingLocks((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const handleBookSlot = (dateStr: string) => {
+    if (!selectedMemberId) return;
+    const bookingKey = `${selectedMemberId}:${dateStr}`;
+    if (bookingLockRef.current.has(bookingKey)) return;
+
+    lockBookingKey(bookingKey);
+    bookSlotMutation.mutate(dateStr, {
+      onSettled: () => {
+        unlockBookingKey(bookingKey);
+      },
+    });
+  };
 
   const cancelBookingMutation = useMutation({
     mutationFn: async ({ memberId, date }: { memberId: string; date: string }) => {
@@ -251,10 +306,11 @@ export default function BookingCalendar() {
               date={date}
               bookings={bookings}
               members={members}
-              onBookSlot={(dateStr) => bookSlotMutation.mutate(dateStr)}
+              onBookSlot={handleBookSlot}
               onCancelBooking={(memberId, date) => cancelBookingMutation.mutate({ memberId, date })}
               isBooking={bookSlotMutation.isPending}
               isCancelling={cancelBookingMutation.isPending}
+              isBookLocked={!!bookingLocks[`${selectedMemberId}:${format(date, "yyyy-MM-dd")}`]}
               selectedMemberId={selectedMemberId}
             />
           ))}
@@ -273,10 +329,11 @@ export default function BookingCalendar() {
               date={date}
               bookings={bookings}
               members={members}
-              onBookSlot={(dateStr) => bookSlotMutation.mutate(dateStr)}
+              onBookSlot={handleBookSlot}
               onCancelBooking={(memberId, date) => cancelBookingMutation.mutate({ memberId, date })}
               isBooking={bookSlotMutation.isPending}
               isCancelling={cancelBookingMutation.isPending}
+              isBookLocked={!!bookingLocks[`${selectedMemberId}:${format(date, "yyyy-MM-dd")}`]}
               selectedMemberId={selectedMemberId}
             />
           ))}

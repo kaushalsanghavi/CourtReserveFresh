@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { bookSlotSchema, insertCommentSchema } from "@shared/schema";
+import { validateBookingRequest } from "@shared/booking-validation";
 import { z } from "zod";
 import { getAiReply } from "../api/index";
 
@@ -110,25 +111,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = bookSlotSchema.parse(req.body);
       const { memberId, memberName, date } = validatedData;
-
-      // Check if date is a weekday
-      const bookingDate = new Date(date);
-      const dayOfWeek = bookingDate.getDay();
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        return res.status(400).json({ message: "Bookings are only allowed on weekdays (Monday-Friday)" });
-      }
-
-      // Check if member already has a booking for this date
-      const existingBookings = await storage.getBookingsByDate(date);
-      const memberBooking = existingBookings.find(booking => booking.memberId === memberId);
-      
-      if (memberBooking) {
-        return res.status(400).json({ message: "Member already has a booking for this date" });
-      }
-
-      // Check if date has reached maximum capacity (6 slots)
-      if (existingBookings.length >= 6) {
-        return res.status(400).json({ message: "This date is fully booked (6/6 slots)" });
+      const validationError = await validateBookingRequest({
+        date,
+        memberId,
+        getBookingsByDate: (bookingDate: string) =>
+          storage.getBookingsByDate(bookingDate),
+      });
+      if (validationError) {
+        return res
+          .status(validationError.status)
+          .json({ message: validationError.message });
       }
 
       // Create the booking
@@ -150,6 +142,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(booking);
     } catch (error) {
+      if ((error as any)?.code === '23505') {
+        return res.status(409).json({ message: "Member already has a booking for this date" });
+      }
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
       }

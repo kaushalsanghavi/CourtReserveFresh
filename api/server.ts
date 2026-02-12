@@ -3,6 +3,7 @@ import express from "express";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { members, bookings, activities, comments, bookSlotSchema, insertCommentSchema } from "../shared/schema.js";
+import { validateBookingRequest } from "../shared/booking-validation.js";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Express } from "express";
@@ -258,6 +259,14 @@ export async function setupRoutes(app: Express) {
     try {
       const bookingData = bookSlotSchema.parse(req.body);
       const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+      const validationError = await validateBookingRequest({
+        date: bookingData.date,
+        memberId: bookingData.memberId,
+        getBookingsByDate: (date: string) => storage.getBookingsByDate(date),
+      });
+      if (validationError) {
+        return res.status(validationError.status).json({ error: validationError.message });
+      }
       
       const booking = await storage.createBooking({
         ...bookingData,
@@ -273,7 +282,9 @@ export async function setupRoutes(app: Express) {
 
       res.json(booking);
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if ((error as any)?.code === '23505') {
+        res.status(409).json({ error: "Member already has a booking for this date" });
+      } else if (error instanceof z.ZodError) {
         res.status(400).json({ error: "Invalid booking data", details: error.errors });
       } else {
         console.error("Error creating booking:", error);
