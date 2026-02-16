@@ -7,7 +7,6 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { Pool } from 'pg'; // Use pg for local development
 import { NodePgDatabase, drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
-import { validateBookingRequest } from "../shared/booking-validation";
 
 // Database schema - inlined to avoid import issues
 const members = pgTable("members", {
@@ -56,6 +55,36 @@ const insertCommentSchema = createInsertSchema(comments).omit({
   id: true,
   createdAt: true,
 });
+
+async function validateBookingRequestLocal(params: {
+  date: string;
+  memberId: string;
+  getBookingsByDate: (date: string) => Promise<Array<{ memberId: string }>>;
+  maxCapacity?: number;
+}) {
+  const { date, memberId, getBookingsByDate, maxCapacity = 6 } = params;
+  const existingBookings = await getBookingsByDate(date);
+
+  const hasExistingMemberBooking = existingBookings.some(
+    (booking) => booking.memberId === memberId,
+  );
+
+  if (hasExistingMemberBooking) {
+    return {
+      status: 409,
+      message: "Member already has a booking for this date",
+    };
+  }
+
+  if (existingBookings.length >= maxCapacity) {
+    return {
+      status: 400,
+      message: `This date is fully booked (${maxCapacity}/${maxCapacity} slots)`,
+    };
+  }
+
+  return null;
+}
 
 const schema = {
   members,
@@ -355,7 +384,7 @@ app.post("/api/bookings", async (req, res) => {
   try {
     const bookingData = bookSlotSchema.parse(req.body);
     const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
-    const validationError = await validateBookingRequest({
+    const validationError = await validateBookingRequestLocal({
       date: bookingData.date,
       memberId: bookingData.memberId,
       getBookingsByDate: (date: string) => storage.getBookingsByDate(date),
