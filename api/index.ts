@@ -7,6 +7,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { Pool } from 'pg'; // Use pg for local development
 import { NodePgDatabase, drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
+import { DUPLICATE_BOOKING_MESSAGE, isDuplicateBookingError } from "./booking-errors";
 
 // Database schema - inlined to avoid import issues
 const members = pgTable("members", {
@@ -407,8 +408,8 @@ app.post("/api/bookings", async (req, res) => {
 
     res.json(booking);
   } catch (error) {
-    if ((error as any)?.code === '23505') {
-      res.status(409).json({ error: "Member already has a booking for this date" });
+    if (isDuplicateBookingError(error)) {
+      res.status(409).json({ error: DUPLICATE_BOOKING_MESSAGE });
     } else if (error instanceof z.ZodError) {
       res.status(400).json({ error: "Invalid booking data", details: error.errors });
     } else {

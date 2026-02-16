@@ -4,6 +4,7 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { members, bookings, activities, comments, bookSlotSchema, insertCommentSchema } from "../shared/schema.js";
 import { validateBookingRequest } from "../shared/booking-validation.js";
+import { DUPLICATE_BOOKING_MESSAGE, isDuplicateBookingError } from "./booking-errors.js";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Express } from "express";
@@ -282,8 +283,8 @@ export async function setupRoutes(app: Express) {
 
       res.json(booking);
     } catch (error) {
-      if ((error as any)?.code === '23505') {
-        res.status(409).json({ error: "Member already has a booking for this date" });
+      if (isDuplicateBookingError(error)) {
+        res.status(409).json({ error: DUPLICATE_BOOKING_MESSAGE });
       } else if (error instanceof z.ZodError) {
         res.status(400).json({ error: "Invalid booking data", details: error.errors });
       } else {

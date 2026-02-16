@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { bookSlotSchema, insertCommentSchema } from "@shared/schema";
 import { validateBookingRequest } from "@shared/booking-validation";
+import { DUPLICATE_BOOKING_MESSAGE, isDuplicateBookingError } from "../api/booking-errors";
 import { z } from "zod";
 import { getAiReply } from "../api/index";
 
@@ -142,8 +143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(booking);
     } catch (error) {
-      if ((error as any)?.code === '23505') {
-        return res.status(409).json({ message: "Member already has a booking for this date" });
+      if (isDuplicateBookingError(error)) {
+        return res.status(409).json({ message: DUPLICATE_BOOKING_MESSAGE });
       }
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
