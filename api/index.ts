@@ -2,7 +2,7 @@ import express from "express";
 import { neon } from "@neondatabase/serverless";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
 import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
-import { eq, sql, count, desc, and, like, gte, not, lt } from 'drizzle-orm';
+import { eq, sql, count, desc, and, like, gte, not, lt, lte } from 'drizzle-orm';
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { Pool } from 'pg'; // Use pg for local development
@@ -438,7 +438,7 @@ app.delete("/api/bookings/:memberId/:date", async (req, res) => {
 
     // Find member name for activity log
     const members = await storage.getMembers();
-    const member = members.find(m => m.id === memberId);
+    const member = members.find((m: any) => m.id === memberId);
     const memberName = member?.name || "Unknown";
 
     // Log the activity
@@ -637,14 +637,14 @@ async function getContextData(intent: string, message: string): Promise<string |
       if (lowerMessage.includes("this week")) {
         const start = startOfWeek(now, { weekStartsOn: 1 }); // Monday
         const end = endOfWeek(now, { weekStartsOn: 1 }); // Sunday
-        filteredBookings = filteredBookings.filter(booking => {
+        filteredBookings = filteredBookings.filter((booking: any) => {
           const bookingDate = parseISO(booking.date);
           return isWithinInterval(bookingDate, { start, end });
         });
       } else if (lowerMessage.includes("today")) {
         const start = startOfDay(now);
         const end = endOfDay(now);
-        filteredBookings = filteredBookings.filter(booking => {
+        filteredBookings = filteredBookings.filter((booking: any) => {
           const bookingDate = parseISO(booking.date);
           return isWithinInterval(bookingDate, { start, end });
         });
@@ -653,7 +653,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         tomorrow.setDate(now.getDate() + 1);
         const start = startOfDay(tomorrow);
         const end = endOfDay(tomorrow);
-        filteredBookings = filteredBookings.filter(booking => {
+        filteredBookings = filteredBookings.filter((booking: any) => {
           const bookingDate = parseISO(booking.date);
           return isWithinInterval(bookingDate, { start, end });
         });
@@ -689,7 +689,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         .groupBy(activities.memberName)
         .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
-          contextData = `The following members have shown activity on iOS devices: ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
+          contextData = `The following members have shown activity on iOS devices: ${result.map((r: any) => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
           contextData = "No members found with activity on iOS devices.";
         }
@@ -703,7 +703,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         .groupBy(activities.memberName)
         .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
-          contextData = `The following members have shown activity on Android devices: ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
+          contextData = `The following members have shown activity on Android devices: ${result.map((r: any) => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
           contextData = "No members found with activity on Android devices.";
         }
@@ -717,7 +717,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         .groupBy(activities.memberName)
         .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
-          contextData = `The following members have shown late night activity (after 9 PM): ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
+          contextData = `The following members have shown late night activity (after 9 PM): ${result.map((r: any) => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
           contextData = "No members found with late night activity.";
         }
@@ -731,7 +731,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         .groupBy(activities.memberName)
         .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
-          contextData = `The following members have shown morning activity (between 6 AM and 12 PM): ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
+          contextData = `The following members have shown morning activity (between 6 AM and 12 PM): ${result.map((r: any) => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
           contextData = "No members found with morning activity.";
         }
@@ -745,7 +745,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         .groupBy(activities.memberName)
         .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
-          contextData = `The following members have shown activity on non-mobile devices (desktop/computer): ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
+          contextData = `The following members have shown activity on non-mobile devices (desktop/computer): ${result.map((r: any) => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
           contextData = "No members found with activity on non-mobile devices.";
         }
@@ -759,7 +759,7 @@ async function getContextData(intent: string, message: string): Promise<string |
         .groupBy(activities.memberName)
         .orderBy(desc(count(activities.id)));
         if (result.length > 0) {
-          contextData = `The overall activity by members is: ${result.map(r => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
+          contextData = `The overall activity by members is: ${result.map((r: any) => `${r.memberName} (${r.activityCount} activities)`).join(", ")}.`;
         } else {
           contextData = "No activity data found.";
         }

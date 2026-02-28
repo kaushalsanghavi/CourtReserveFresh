@@ -6,6 +6,7 @@ const TARGETS = [
   path.join(ROOT, "api"),
   path.join(ROOT, "server", "ai"),
   path.join(ROOT, "server", "db.ts"),
+  path.join(ROOT, "server", "routes.ts"),
 ];
 
 const ALIAS_PREFIXES = ["@shared/", "@/"];

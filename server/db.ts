@@ -42,14 +42,12 @@ let createdPool: any;
 let createdDb: any;
 
 if (isProduction) {
-  // Production: Use Neon serverless driver
-  const { Pool: NeonPool, neonConfig } = require('@neondatabase/serverless');
-  const { drizzle: neonDrizzle } = require('drizzle-orm/neon-serverless');
-  const ws = require('ws');
+  // Production: Use Neon HTTP driver (stable in serverless runtimes)
+  const { neon } = require("@neondatabase/serverless");
+  const { drizzle } = require("drizzle-orm/neon-http");
 
-  neonConfig.webSocketConstructor = ws;
-  createdPool = new NeonPool({ connectionString: process.env.DATABASE_URL });
-  createdDb = neonDrizzle({ client: createdPool, schema });
+  createdPool = neon(process.env.DATABASE_URL);
+  createdDb = drizzle(createdPool, { schema });
 } else {
   // Local development: Use regular pg driver
   const { Pool } = require('pg');

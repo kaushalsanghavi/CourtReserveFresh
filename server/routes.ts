@@ -1,15 +1,18 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { bookSlotSchema, insertCommentSchema } from "@shared/schema";
-import { validateBookingRequest } from "@shared/booking-validation";
-import { DUPLICATE_BOOKING_MESSAGE, isDuplicateBookingError } from "../api/booking-errors";
+import { storage } from "./storage.js";
+import { bookSlotSchema, insertCommentSchema } from "../shared/schema.js";
+import { validateBookingRequest } from "../shared/booking-validation.js";
+import {
+  DUPLICATE_BOOKING_MESSAGE,
+  isDuplicateBookingError,
+} from "../api/booking-errors.js";
 import { z } from "zod";
-import { getAiReply as getLegacyAiReply } from "./ai";
+import { getAiReply as getLegacyAiReply } from "./ai.js";
 import {
   AiChatRequestError,
   handleAiChatRequest,
-} from "./ai/sql-chat-service";
+} from "./ai/sql-chat-service.js";
 
 function parseUserAgent(userAgent: string): string {
   if (!userAgent) return 'Unknown Device';
