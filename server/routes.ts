@@ -5,7 +5,11 @@ import { bookSlotSchema, insertCommentSchema } from "@shared/schema";
 import { validateBookingRequest } from "@shared/booking-validation";
 import { DUPLICATE_BOOKING_MESSAGE, isDuplicateBookingError } from "../api/booking-errors";
 import { z } from "zod";
-import { getAiReply } from "../api/index";
+import { getAiReply as getLegacyAiReply } from "./ai";
+import {
+  AiChatRequestError,
+  handleAiChatRequest,
+} from "./ai/sql-chat-service";
 
 function parseUserAgent(userAgent: string): string {
   if (!userAgent) return 'Unknown Device';
@@ -252,16 +256,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // AI Chat endpoint
   app.post("/api/ai/chat", async (req, res) => {
-    const { message } = req.body;
-
-    if (!message || typeof message !== 'string') {
-      return res.status(400).json({ message: "Invalid request, 'message' is required." });
-    }
-
     try {
-      const reply = await getAiReply(message);
-      res.json({ reply });
+      const response = await handleAiChatRequest(
+        {
+          message: req.body?.message,
+          clientTimeZone: req.body?.clientTimeZone,
+          debug: req.body?.debug,
+        },
+        getLegacyAiReply,
+      );
+      res.json(response);
     } catch (error) {
+      if (error instanceof AiChatRequestError) {
+        return res.status(error.status).json({ message: error.message });
+      }
       console.error("Error in AI chat endpoint:", error);
       res.status(500).json({ message: "Failed to get AI reply." });
     }

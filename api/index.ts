@@ -7,7 +7,14 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { Pool } from 'pg'; // Use pg for local development
 import { NodePgDatabase, drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
-import { DUPLICATE_BOOKING_MESSAGE, isDuplicateBookingError } from "./booking-errors";
+import {
+  DUPLICATE_BOOKING_MESSAGE,
+  isDuplicateBookingError,
+} from "./booking-errors.js";
+import {
+  AiChatRequestError,
+  handleAiChatRequest,
+} from "../server/ai/sql-chat-service.js";
 
 // Database schema - inlined to avoid import issues
 const members = pgTable("members", {
@@ -795,16 +802,20 @@ async function getAiReply(userMessage: string): Promise<string> {
 }
 
 app.post("/api/ai/chat", async (req, res) => {
-  const { message } = req.body;
-
-  if (!message || typeof message !== 'string') {
-    return res.status(400).json({ message: "Invalid request, 'message' is required." });
-  }
-
   try {
-    const reply = await getAiReply(message);
-    res.json({ reply });
+    const response = await handleAiChatRequest(
+      {
+        message: req.body?.message,
+        clientTimeZone: req.body?.clientTimeZone,
+        debug: req.body?.debug,
+      },
+      getAiReply,
+    );
+    res.json(response);
   } catch (error) {
+    if (error instanceof AiChatRequestError) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("Error in AI chat endpoint:", error);
     res.status(500).json({ message: "Failed to get AI reply." });
   }
