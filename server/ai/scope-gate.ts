@@ -1,5 +1,8 @@
 import type { GenerativeModel } from "@google/generative-ai";
-import { scopeDecisionSchema, type ScopeDecision } from "@shared/ai-chat";
+import {
+  scopeDecisionSchema,
+  type ScopeDecision,
+} from "../../shared/ai-chat.js";
 
 const IN_SCOPE_TERMS = [
   "badminton",

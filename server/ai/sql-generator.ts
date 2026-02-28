@@ -2,7 +2,7 @@ import type { GenerativeModel } from "@google/generative-ai";
 import {
   sqlGenerationSchema,
   type SqlGeneration,
-} from "@shared/ai-chat";
+} from "../../shared/ai-chat.js";
 
 function extractJsonObject(text: string): string | null {
   const start = text.indexOf("{");

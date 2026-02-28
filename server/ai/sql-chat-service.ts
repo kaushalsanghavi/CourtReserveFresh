@@ -5,12 +5,12 @@ import {
   type AiChatResponse,
   type ScopeDecision,
   type SqlGeneration,
-} from "@shared/ai-chat";
-import { runScopeGate } from "./scope-gate";
-import { generateSqlForQuestion } from "./sql-generator";
-import { validateGeneratedSql } from "./sql-validator";
-import { executeSqlReadOnly } from "./sql-executor";
-import { synthesizeAnswerFromRows } from "./answer-synthesizer";
+} from "../../shared/ai-chat.js";
+import { runScopeGate } from "./scope-gate.js";
+import { generateSqlForQuestion } from "./sql-generator.js";
+import { validateGeneratedSql } from "./sql-validator.js";
+import { executeSqlReadOnly } from "./sql-executor.js";
+import { synthesizeAnswerFromRows } from "./answer-synthesizer.js";
 
 type LegacyHandler = (message: string) => Promise<string>;
 
