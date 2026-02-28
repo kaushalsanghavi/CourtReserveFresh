@@ -1,12 +1,13 @@
 import * as schema from "../shared/schema.js";
 import dotenv from "dotenv";
-import { createRequire } from "module";
+import { neon } from "@neondatabase/serverless";
+import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
+import { Pool } from "pg";
+import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 
 // Ensure env vars are loaded even during module import order
 dotenv.config({ path: ".env.local" });
 dotenv.config();
-
-const require = createRequire(import.meta.url);
 
 // Environment detection across local, Vercel, and Replit
 const isProduction =
@@ -43,21 +44,15 @@ let createdDb: any;
 
 if (isProduction) {
   // Production: Use Neon HTTP driver (stable in serverless runtimes)
-  const { neon } = require("@neondatabase/serverless");
-  const { drizzle } = require("drizzle-orm/neon-http");
-
   createdPool = neon(process.env.DATABASE_URL);
-  createdDb = drizzle(createdPool, { schema });
+  createdDb = drizzleNeon(createdPool, { schema });
 } else {
   // Local development: Use regular pg driver
-  const { Pool } = require('pg');
-  const { drizzle } = require('drizzle-orm/node-postgres');
-
   createdPool = new Pool({
     connectionString: process.env.DATABASE_URL,
     options: `-c search_path=${getCurrentSchema()}`,
   });
-  createdDb = drizzle({ client: createdPool, schema });
+  createdDb = drizzlePg({ client: createdPool, schema });
 }
 
 export const pool = createdPool;
