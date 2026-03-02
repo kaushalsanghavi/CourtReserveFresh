@@ -7,14 +7,14 @@ import { useSelectedMember } from "./QuickBooking";
 import CommentsAlternative from "./CommentsAlternative";
 import BookingHistory from "./BookingHistory";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { History } from "lucide-react";
+import { History, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Member, Booking, Comment } from "@shared/schema";
 import { getMaxCapacityForDate } from "@shared/booking-capacity";
 import {
   isSameDayLockedAfterCutoffInIst,
   SAME_DAY_BOOKING_LOCK_MESSAGE,
 } from "@shared/booking-time-policy";
-import { format, parseISO, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, isAfter } from "date-fns";
+import { format, parseISO, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, isAfter, subMonths } from "date-fns";
 
 interface DayCardProps {
   date: Date;
@@ -178,6 +178,7 @@ export default function BookingCalendar() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { selectedMemberId, selectedMember } = useSelectedMember();
+  const [dateOffset, setDateOffset] = useState(0);
   const bookingLockRef = useRef<Set<string>>(new Set());
   const [bookingLocks, setBookingLocks] = useState<Record<string, true>>({});
 
@@ -282,7 +283,7 @@ export default function BookingCalendar() {
   });
 
   const today = new Date();
-  const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 });
+  const startOfThisWeek = startOfWeek(addDays(today, dateOffset), { weekStartsOn: 1 });
   const weekDays: Date[] = [];
 
   for (let i = 0; i < 28; i++) {
@@ -299,12 +300,35 @@ export default function BookingCalendar() {
     weekDays.slice(15, 20),
   ];
 
+  const twoMonthsAgo = subMonths(today, 2);
+  const isPrevDisabled =
+    startOfWeek(addDays(today, dateOffset - 7), { weekStartsOn: 1 }) < twoMonthsAgo;
+  const isNextDisabled = dateOffset >= 0;
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8" data-testid="booking-calendar">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-lg font-medium text-gray-900">Booking Window</h2>
           <p className="text-sm text-gray-600">Weekdays only (Monday - Friday), next 4 weeks</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setDateOffset(dateOffset - 7)}
+            disabled={isPrevDisabled}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setDateOffset(dateOffset + 7)}
+            disabled={isNextDisabled}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
