@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { SendHorizontal } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { ScrollArea } from "../components/ui/scroll-area";
@@ -255,35 +256,39 @@ export default function AIChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[calc(100vh-4rem)]">
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+    <div className="flex h-[70vh] min-h-[26rem] max-h-[calc(100vh-10rem)] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-200 bg-gradient-to-r from-ramp-green-50 via-white to-white px-4 py-3 sm:px-5">
+        <p className="text-sm font-semibold text-gray-900">CourtReserve Assistant</p>
+        <p className="text-xs text-gray-500">Ask about bookings, participation, and availability.</p>
+      </div>
+      <ScrollArea className="flex-1 px-3 py-3 sm:px-4 sm:py-4">
+        <div className="space-y-3 sm:space-y-4">
           {messages.map((message) => (
             <div
               key={message.id}
               className={cn(
-                "flex items-end gap-2",
+                "flex items-end gap-2 sm:gap-3",
                 message.sender === "user" ? "justify-end" : "justify-start",
               )}
             >
               {message.sender === "ai" && (
-                <Avatar>
+                <Avatar className="h-8 w-8 border border-border shadow-sm sm:h-9 sm:w-9">
                   <AvatarImage src="/ai-avatar.png" alt="AI" />
                   <AvatarFallback>AI</AvatarFallback>
                 </Avatar>
               )}
               <div
                 className={cn(
-                  "max-w-[80%] p-3 rounded-lg",
+                  "max-w-[88%] rounded-2xl border p-3 text-sm leading-relaxed shadow-sm sm:max-w-[80%] sm:text-[15px]",
                   message.sender === "user"
-                    ? "bg-blue-500 text-white rounded-br-none"
-                    : "bg-gray-200 text-gray-800 rounded-bl-none",
+                    ? "rounded-br-md border-ramp-green-200 bg-ramp-green-100 text-ramp-green-700"
+                    : "rounded-bl-md border-gray-200 bg-gray-100 text-gray-800",
                 )}
               >
-                <p>{message.text}</p>
+                <p className="whitespace-pre-wrap break-words">{message.text}</p>
 
                 {message.sender === "ai" && message.meta?.decisionSummary && (
-                  <div className="mt-3 rounded border border-gray-300 bg-white p-2 text-xs text-gray-700">
+                  <div className="mt-3 rounded-md border border-gray-300 bg-white p-2 text-xs text-gray-700">
                     <span className="font-semibold">Decision summary:</span>{" "}
                     {message.meta.decisionSummary}
                   </div>
@@ -342,7 +347,7 @@ export default function AIChatPage() {
                 )}
               </div>
               {message.sender === "user" && (
-                <Avatar>
+                <Avatar className="h-8 w-8 border border-border shadow-sm sm:h-9 sm:w-9">
                   <AvatarImage src="/user-avatar.png" alt="User" />
                   <AvatarFallback>You</AvatarFallback>
                 </Avatar>
@@ -351,29 +356,54 @@ export default function AIChatPage() {
           ))}
 
           {sendMessageMutation.isPending && (
-            <div className="flex items-end gap-2 justify-start">
-              <Avatar>
+            <div className="flex items-end justify-start gap-2 sm:gap-3">
+              <Avatar className="h-8 w-8 border border-border shadow-sm sm:h-9 sm:w-9">
                 <AvatarImage src="/ai-avatar.png" alt="AI" />
                 <AvatarFallback>AI</AvatarFallback>
               </Avatar>
-              <div className="max-w-[80%] p-3 rounded-lg bg-gray-200 text-gray-800 rounded-bl-none">
-                <p className="font-medium">AI is thinking...</p>
-                <div className="mt-2 space-y-1 text-xs">
-                  {STAGE_LABELS.map(({ stage, label }) => {
+              <div className="max-w-[88%] rounded-2xl rounded-bl-md border border-ramp-green-200 bg-gradient-to-br from-ramp-green-50 via-white to-ramp-green-100 p-3 text-gray-800 shadow-sm sm:max-w-[80%] sm:p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1" aria-hidden="true">
+                    {[0, 140, 280].map((delay) => (
+                      <span
+                        key={delay}
+                        className="h-2 w-2 rounded-full bg-ramp-green-600 animate-bounce"
+                        style={{ animationDelay: `${delay}ms` }}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800">Thinking through your request...</p>
+                </div>
+                <div className="mt-3 space-y-1.5 text-xs sm:text-sm">
+                  {STAGE_LABELS.map(({ stage, label }, index) => {
                     const status = stageStatus(pendingProgress?.events ?? [], stage);
-                    const marker =
-                      status === "completed"
-                        ? "✓"
-                        : status === "failed"
-                          ? "✕"
-                          : status === "active"
-                            ? "…"
-                            : "○";
 
                     return (
-                      <div key={stage} className="flex items-center gap-2">
-                        <span>{marker}</span>
+                      <div
+                        key={stage}
+                        className={cn(
+                          "flex items-center justify-between rounded-md border px-2.5 py-2 transition-all",
+                          status === "completed" && "border-ramp-green-300 bg-ramp-green-100 text-gray-800",
+                          status === "failed" && "border-red-300 bg-red-50 text-red-800",
+                          status === "active" &&
+                            "border-ramp-green-300 bg-ramp-green-100 text-gray-800 animate-pulse",
+                          status === "pending" && "border-gray-200 bg-white/75 text-gray-500",
+                        )}
+                        style={{ animationDelay: `${index * 80}ms` }}
+                      >
                         <span>{label}</span>
+                        <span
+                          className={cn(
+                            "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold",
+                            status === "completed" && "bg-ramp-green-600 text-white",
+                            status === "failed" && "bg-red-600 text-white",
+                            status === "active" &&
+                              "bg-ramp-green-200 text-ramp-green-700 ring-2 ring-ramp-green-300 animate-pulse",
+                            status === "pending" && "bg-gray-200 text-gray-500",
+                          )}
+                        >
+                          {status === "completed" ? "✓" : status === "failed" ? "!" : status === "active" ? "…" : "○"}
+                        </span>
                       </div>
                     );
                   })}
@@ -385,18 +415,23 @@ export default function AIChatPage() {
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
-      <div className="p-4 border-t bg-white">
-        <form onSubmit={handleSendMessage} className="flex gap-2">
+      <div className="border-t border-gray-200 bg-white/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-white/80 sm:p-4">
+        <form onSubmit={handleSendMessage} className="flex items-end gap-2 sm:gap-3">
           <Input
             type="text"
             placeholder="Type your message..."
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            className="flex-1"
+            className="h-11 flex-1 rounded-full bg-white px-4 shadow-sm"
             disabled={sendMessageMutation.isPending}
           />
-          <Button type="submit" disabled={sendMessageMutation.isPending}>
-            Send
+          <Button
+            type="submit"
+            disabled={sendMessageMutation.isPending}
+            className="h-11 rounded-full px-4 sm:px-5"
+          >
+            <SendHorizontal className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Send</span>
           </Button>
         </form>
       </div>
