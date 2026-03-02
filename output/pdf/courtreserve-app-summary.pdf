@@ -1,0 +1,71 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+6 0 obj
+<< /Length 3257 >>
+stream
+0 0 0 rg
+BT /F2 18 Tf 54 752.00 Td (CourtReserve - One-Page App Summary) Tj ET
+BT /F1 9 Tf 54 732.00 Td (Generated: 2026-03-03) Tj ET
+BT /F2 12 Tf 54 712.00 Td (What it is) Tj ET
+BT /F1 10 Tf 54 698.00 Td (CourtReserve is a full-stack badminton group slot-booking app with calendar booking, activity) Tj ET
+BT /F1 10 Tf 54 686.00 Td (tracking, comments, participation analytics, and an AI chat tab.) Tj ET
+BT /F1 10 Tf 54 674.00 Td (It combines a React frontend with an Express API backed by PostgreSQL via Drizzle ORM.) Tj ET
+BT /F2 12 Tf 54 658.00 Td (Who it's for) Tj ET
+BT /F1 10 Tf 54 644.00 Td (Primary users are badminton group members and a lightweight group organizer who coordinate daily) Tj ET
+BT /F1 10 Tf 54 632.00 Td (weekday slot reservations.) Tj ET
+BT /F2 12 Tf 54 616.00 Td (What it does) Tj ET
+BT /F1 10 Tf 54 602.00 Td (- Member picker for quick book/cancel actions; remembers the last selected member in a browser cookie.) Tj ET
+BT /F1 10 Tf 54 591.00 Td (- Weekday booking window in the UI \(next 4 weeks\) with slot-capacity limits and duplicate-booking) Tj ET
+BT /F1 10 Tf 54 580.00 Td (  prevention.) Tj ET
+BT /F1 10 Tf 54 569.00 Td (- Same-day change lock after 9:30 AM IST for booking and cancellation requests.) Tj ET
+BT /F1 10 Tf 54 558.00 Td (- Calendar day cards show booked members, slot usage counts, and booking state by date.) Tj ET
+BT /F1 10 Tf 54 547.00 Td (- Recent Activity feed shows latest bookings/cancellations with device and browser details.) Tj ET
+BT /F1 10 Tf 54 536.00 Td (- Monthly Participation table computes per-member bookings and participation rate, with sortable) Tj ET
+BT /F1 10 Tf 54 525.00 Td (  columns.) Tj ET
+BT /F1 10 Tf 54 514.00 Td (- AI Chat tab streams request-stage progress and can show decision summaries and SQL trace details.) Tj ET
+BT /F2 12 Tf 54 501.00 Td (How it works) Tj ET
+BT /F1 10 Tf 54 487.00 Td (- Client: React 18 + Vite + Wouter + TanStack Query \(`client/src`\).) Tj ET
+BT /F1 10 Tf 54 476.00 Td (- API: Express routes for members, bookings, activities, comments, and AI chat \(`server/routes.ts`\).) Tj ET
+BT /F1 10 Tf 54 465.00 Td (- Shared contracts: schema and booking policies reused across runtimes \(`shared/*.ts`\).) Tj ET
+BT /F1 10 Tf 54 454.00 Td (- Data layer: Drizzle + PostgreSQL with environment-based schema selection \(`server/db.ts`\).) Tj ET
+BT /F1 10 Tf 54 443.00 Td (- AI pipeline: scope gate -> SQL generation -> SQL validation -> read-only execution -> answer) Tj ET
+BT /F1 10 Tf 54 432.00 Td (  synthesis \(`server/ai/*`\).) Tj ET
+BT /F1 10 Tf 54 421.00 Td (- Data flow: UI actions -> API calls -> route handlers -> storage/DB -> JSON responses -> React Query) Tj ET
+BT /F1 10 Tf 54 410.00 Td (  cache refresh.) Tj ET
+BT /F2 12 Tf 54 397.00 Td (How to run \(minimal\)) Tj ET
+BT /F1 10 Tf 54 383.00 Td (1. Install dependencies: `npm install`.) Tj ET
+BT /F1 10 Tf 54 372.00 Td (2. Create `.env.local` with `DATABASE_URL=...`; add `GEMINI_API_KEY=...` for AI Chat responses.) Tj ET
+BT /F1 10 Tf 54 361.00 Td (3. Apply DB schema: `npm run db:push`.) Tj ET
+BT /F1 10 Tf 54 350.00 Td (4. Start development server: `npm run dev` \(serves on `http://localhost:5000`\).) Tj ET
+BT /F1 10 Tf 54 339.00 Td (5. Required Node.js version: Not found in repo.) Tj ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000257 00000 n 
+0000000327 00000 n 
+0000000402 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+3711
+%%EOF

@@ -3,6 +3,7 @@ import {
   sqlGenerationSchema,
   type SqlGeneration,
 } from "../../shared/ai-chat.js";
+import { formatSqlSchemaDictionary } from "./sql-surface.js";
 
 function extractJsonObject(text: string): string | null {
   const start = text.indexOf("{");
@@ -37,7 +38,7 @@ export async function generateSqlForQuestion(
   const { message, clientTimeZone, previousError } = input;
 
   const repairContext = previousError
-    ? `\nPrevious SQL attempt failed with this validation/runtime error:\n${previousError}\nGenerate a corrected SQL query.\n`
+    ? `\nPrevious SQL attempt failed:\n${previousError}\nRegenerate SQL by strictly using only the schema below.\n`
     : "";
 
   const prompt = `
@@ -55,6 +56,9 @@ Allowed fallback base tables:
 - members
 - comments
 
+Authoritative schema (use only these columns):
+${formatSqlSchemaDictionary()}
+
 Rules:
 - single SELECT statement only
 - no comments
@@ -62,6 +66,8 @@ Rules:
 - always include LIMIT <= 200
 - prefer LIMIT 100 if unsure
 - answer ONLY from CourtReserve badminton domain data
+- use ONLY columns listed in the authoritative schema above
+- if a column is not listed, do not infer or invent it
 - Use ONLY these SQL functions: COUNT, SUM, AVG, MIN, MAX, DATE_TRUNC, EXTRACT, DATE_PART, CAST, COALESCE, LOWER, UPPER, ROUND, NULLIF, CURRENT_DATE, CURRENT_TIMESTAMP, NOW, TIMEZONE
 - Avoid AT TIME ZONE syntax; prefer DATE_TRUNC/EXTRACT with CURRENT_DATE or CURRENT_TIMESTAMP
 - Prefer ai_booking_facts.member_name directly for booking leaderboards (avoid unnecessary joins)

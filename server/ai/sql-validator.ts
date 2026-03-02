@@ -1,15 +1,16 @@
 import nodeSqlParser from "node-sql-parser";
+import {
+  getColumnsForRelation,
+  SQL_RELATIONS,
+} from "./sql-surface.js";
 
-const ALLOWED_RELATIONS = new Set([
-  "ai_booking_facts",
-  "ai_activity_facts",
-  "ai_member_facts",
-  "ai_comment_facts",
-  "bookings",
-  "activities",
-  "members",
-  "comments",
-]);
+const ALLOWED_RELATIONS = new Set(SQL_RELATIONS.map((relation) => relation.toLowerCase()));
+const ALLOWED_COLUMNS_BY_RELATION = new Map(
+  SQL_RELATIONS.map((relation) => [
+    relation.toLowerCase(),
+    new Set(getColumnsForRelation(relation).map((column) => column.toLowerCase())),
+  ]),
+);
 
 const ALLOWED_FUNCTIONS = new Set([
   "count",
@@ -67,6 +68,11 @@ type AstNode = Record<string, unknown>;
 type ParseResult = {
   ast: unknown;
   tableList: string[];
+};
+
+type ColumnValidationFailure = {
+  relation: string;
+  column: string;
 };
 
 function hasInlineComments(sql: string): boolean {
@@ -201,6 +207,33 @@ function walkAst(node: unknown, onNode: (item: AstNode) => void): void {
   }
 }
 
+function walkAstInSingleSelect(
+  node: unknown,
+  onNode: (item: AstNode) => void,
+  isRoot = true,
+): void {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      walkAstInSingleSelect(item, onNode, false);
+    }
+    return;
+  }
+
+  if (!isObjectLike(node)) {
+    return;
+  }
+
+  const type = typeof node.type === "string" ? node.type.toLowerCase() : "";
+  if (!isRoot && type === "select") {
+    return;
+  }
+
+  onNode(node);
+  for (const value of Object.values(node)) {
+    walkAstInSingleSelect(value, onNode, false);
+  }
+}
+
 function hasOnlyAllowedFunctionsFromAst(ast: unknown): boolean {
   let valid = true;
 
@@ -232,6 +265,172 @@ function hasOnlyAllowedFunctionsFromAst(ast: unknown): boolean {
   });
 
   return valid;
+}
+
+function extractColumnName(value: unknown): string | null {
+  if (typeof value === "string") {
+    return normalizeIdentifier(value);
+  }
+
+  if (!isObjectLike(value)) {
+    return null;
+  }
+
+  if (typeof value.value === "string") {
+    return normalizeIdentifier(value.value);
+  }
+
+  if (isObjectLike(value.expr) && typeof value.expr.value === "string") {
+    return normalizeIdentifier(value.expr.value);
+  }
+
+  return null;
+}
+
+function collectAliasesForStatement(
+  statement: AstNode,
+): { aliasToRelation: Map<string, string>; relations: string[] } {
+  const aliasToRelation = new Map<string, string>();
+  const relations = new Set<string>();
+  const fromEntries = statement.from;
+
+  if (!Array.isArray(fromEntries)) {
+    return { aliasToRelation, relations: [] };
+  }
+
+  for (const entry of fromEntries) {
+    if (!isObjectLike(entry) || typeof entry.table !== "string") {
+      continue;
+    }
+
+    const relation = normalizeIdentifier(entry.table);
+    if (!ALLOWED_RELATIONS.has(relation)) {
+      continue;
+    }
+
+    relations.add(relation);
+    aliasToRelation.set(relation, relation);
+
+    if (typeof entry.as === "string" && entry.as.trim()) {
+      aliasToRelation.set(normalizeIdentifier(entry.as), relation);
+    }
+  }
+
+  return { aliasToRelation, relations: Array.from(relations) };
+}
+
+function findUnknownColumnInStatement(
+  statement: AstNode,
+): ColumnValidationFailure | null {
+  const { aliasToRelation, relations } = collectAliasesForStatement(statement);
+  let failure: ColumnValidationFailure | null = null;
+
+  walkAstInSingleSelect(statement, (node) => {
+    if (failure) {
+      return;
+    }
+
+    const type = typeof node.type === "string" ? node.type.toLowerCase() : "";
+    if (type !== "column_ref") {
+      return;
+    }
+
+    const column = extractColumnName(node.column);
+    if (!column || column === "*" || column === "(.*)") {
+      return;
+    }
+
+    const tableRef =
+      typeof node.table === "string" && node.table.trim().length > 0
+        ? normalizeIdentifier(node.table)
+        : "";
+
+    if (tableRef) {
+      const relation = aliasToRelation.get(tableRef);
+      if (!relation) {
+        return;
+      }
+
+      const allowedColumns = ALLOWED_COLUMNS_BY_RELATION.get(relation);
+      if (!allowedColumns) {
+        return;
+      }
+
+      if (!allowedColumns.has(column)) {
+        failure = { relation, column };
+      }
+      return;
+    }
+
+    if (relations.length === 0) {
+      return;
+    }
+
+    if (relations.length === 1) {
+      const relation = relations[0];
+      const allowedColumns = ALLOWED_COLUMNS_BY_RELATION.get(relation);
+      if (allowedColumns && !allowedColumns.has(column)) {
+        failure = { relation, column };
+      }
+      return;
+    }
+
+    const existsInAnyRelation = relations.some((relation) => {
+      const allowedColumns = ALLOWED_COLUMNS_BY_RELATION.get(relation);
+      return allowedColumns ? allowedColumns.has(column) : false;
+    });
+
+    if (!existsInAnyRelation) {
+      failure = { relation: relations.join(", "), column };
+    }
+  });
+
+  return failure;
+}
+
+function collectNestedSelectStatements(
+  node: unknown,
+  root: AstNode,
+  output: AstNode[],
+): void {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      collectNestedSelectStatements(item, root, output);
+    }
+    return;
+  }
+
+  if (!isObjectLike(node)) {
+    return;
+  }
+
+  const type = typeof node.type === "string" ? node.type.toLowerCase() : "";
+  if (node !== root && type === "select") {
+    output.push(node);
+    return;
+  }
+
+  for (const value of Object.values(node)) {
+    collectNestedSelectStatements(value, root, output);
+  }
+}
+
+function findUnknownColumnRecursively(statement: AstNode): ColumnValidationFailure | null {
+  const currentFailure = findUnknownColumnInStatement(statement);
+  if (currentFailure) {
+    return currentFailure;
+  }
+
+  const nestedSelects: AstNode[] = [];
+  collectNestedSelectStatements(statement, statement, nestedSelects);
+  for (const nested of nestedSelects) {
+    const nestedFailure = findUnknownColumnRecursively(nested);
+    if (nestedFailure) {
+      return nestedFailure;
+    }
+  }
+
+  return null;
 }
 
 function parseTableRef(tableRef: string): {
@@ -385,6 +584,20 @@ export function validateGeneratedSql(rawSql: string): ValidatedSqlResult {
       ok: false,
       sql,
       reason: "SQL uses functions outside the allowlist.",
+      limitApplied: false,
+    };
+  }
+
+  const unknownColumn = findUnknownColumnRecursively(statements[0]);
+  if (unknownColumn) {
+    const allowedColumns = getColumnsForRelation(unknownColumn.relation);
+    const allowedList = allowedColumns.length
+      ? allowedColumns.join(", ")
+      : "none";
+    return {
+      ok: false,
+      sql,
+      reason: `Unknown column "${unknownColumn.column}" for relation "${unknownColumn.relation}". Allowed columns: ${allowedList}.`,
       limitApplied: false,
     };
   }

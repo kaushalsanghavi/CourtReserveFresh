@@ -7,4 +7,6 @@ vite.config.ts.*
 .env.local
 .env.local.bak
 api/routes.js
+playwright-report
+test-results
 .vercel

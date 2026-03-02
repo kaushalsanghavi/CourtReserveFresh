@@ -14,6 +14,7 @@ import { generateSqlForQuestion } from "./sql-generator.js";
 import { validateGeneratedSql } from "./sql-validator.js";
 import { executeSqlReadOnly } from "./sql-executor.js";
 import { synthesizeAnswerFromRows } from "./answer-synthesizer.js";
+import { formatSqlSchemaDictionary } from "./sql-surface.js";
 
 type LegacyHandler = (message: string) => Promise<string>;
 
@@ -162,6 +163,36 @@ function clarifyResponse(
 
 function canRetry(generation: SqlGeneration): boolean {
   return generation.confidence >= 0.7;
+}
+
+function extractUnknownColumn(errorText: string): string | null {
+  const match = errorText.match(/column\s+"?([a-zA-Z0-9_\.]+)"?\s+does not exist/i);
+  if (!match) {
+    return null;
+  }
+  return match[1];
+}
+
+function buildRetryErrorContext(
+  reason: string,
+  failedSql: string,
+): string {
+  const unknownColumn = extractUnknownColumn(reason);
+  const prefix = unknownColumn
+    ? `Unknown column detected: ${unknownColumn}.`
+    : "SQL generation failed validation or execution.";
+
+  return `${prefix}
+Failure reason:
+${reason}
+
+Failed SQL:
+${failedSql}
+
+Use only this authoritative schema:
+${formatSqlSchemaDictionary()}
+
+Regenerate a single safe SELECT query that uses only valid columns.`;
 }
 
 function getModel() {
@@ -369,7 +400,10 @@ async function attemptSqlPipeline(
     generation = await generateSqlForQuestion(model, {
       message: input.message,
       clientTimeZone: input.clientTimeZone,
-      previousError: validation.reason,
+      previousError: buildRetryErrorContext(
+        validation.reason ?? "SQL validation failed",
+        generation.sql,
+      ),
     });
     emitProgress(requestId, "generating_sql", "completed", "SQL regenerated.");
 
@@ -435,10 +469,12 @@ async function attemptSqlPipeline(
       const retryGeneration = await generateSqlForQuestion(model, {
         message: input.message,
         clientTimeZone: input.clientTimeZone,
-        previousError:
+        previousError: buildRetryErrorContext(
           error instanceof Error
             ? error.message
             : "Runtime SQL execution error",
+          validation.sql,
+        ),
       });
       emitProgress(requestId, "generating_sql", "completed", "Retry SQL generated.");
 

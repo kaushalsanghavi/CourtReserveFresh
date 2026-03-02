@@ -11,10 +11,14 @@ import { History, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Member, Booking, Comment } from "@shared/schema";
 import { getMaxCapacityForDate } from "@shared/booking-capacity";
 import {
+  isDateOutsideRollingBookingWindow,
+  isPastBookingDate,
+} from "@shared/booking-window-policy";
+import {
   isSameDayLockedAfterCutoffInIst,
   SAME_DAY_BOOKING_LOCK_MESSAGE,
 } from "@shared/booking-time-policy";
-import { format, parseISO, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, isAfter, subMonths } from "date-fns";
+import { format, parseISO, addDays, startOfWeek, isWeekend, isSameDay, subMonths } from "date-fns";
 
 interface DayCardProps {
   date: Date;
@@ -37,9 +41,8 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
 
   // Allow booking anytime, but only within a rolling 4-week window.
   const now = new Date();
-  const bookingWindowEnd = addDays(startOfDay(now), 27);
-  const isPastDate = isBefore(startOfDay(date), startOfDay(now));
-  const isBeyondWindow = isAfter(startOfDay(date), bookingWindowEnd);
+  const isPastDate = isPastBookingDate(date, now);
+  const isBeyondWindow = isDateOutsideRollingBookingWindow(date, now);
   const isSameDayLocked = isSameDayLockedAfterCutoffInIst(dateStr);
   const isBookingDisabled = isPastDate || isBeyondWindow || isSameDayLocked;
 
@@ -318,6 +321,7 @@ export default function BookingCalendar() {
             size="icon"
             onClick={() => setDateOffset(dateOffset - 7)}
             disabled={isPrevDisabled}
+            data-testid="prev-week-button"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -326,6 +330,7 @@ export default function BookingCalendar() {
             size="icon"
             onClick={() => setDateOffset(dateOffset + 7)}
             disabled={isNextDisabled}
+            data-testid="next-week-button"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
