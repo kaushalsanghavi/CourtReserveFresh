@@ -16,6 +16,7 @@ import {
   handleAiChatRequest,
   subscribeToAiChatProgress,
 } from "../server/ai/sql-chat-service.js";
+import { getMaxCapacityForDate } from "../shared/booking-capacity.js";
 
 // Database schema - inlined to avoid import issues
 const members = pgTable("members", {
@@ -71,7 +72,12 @@ async function validateBookingRequestLocal(params: {
   getBookingsByDate: (date: string) => Promise<Array<{ memberId: string }>>;
   maxCapacity?: number;
 }) {
-  const { date, memberId, getBookingsByDate, maxCapacity = 6 } = params;
+  const {
+    date,
+    memberId,
+    getBookingsByDate,
+    maxCapacity = getMaxCapacityForDate(date),
+  } = params;
   const existingBookings = await getBookingsByDate(date);
 
   const hasExistingMemberBooking = existingBookings.some(

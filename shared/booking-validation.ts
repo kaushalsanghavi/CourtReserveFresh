@@ -1,3 +1,5 @@
+import { getMaxCapacityForDate } from "./booking-capacity.js";
+
 export interface BookingValidationBooking {
   memberId: string;
 }
@@ -26,7 +28,7 @@ export async function validateBookingRequest(
     date,
     memberId,
     getBookingsByDate,
-    maxCapacity = 6,
+    maxCapacity = getMaxCapacityForDate(date),
     weekdayOnly = true,
   } = params;
 

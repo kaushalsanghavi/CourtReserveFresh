@@ -7,9 +7,10 @@ import { useSelectedMember } from "./QuickBooking";
 import CommentsAlternative from "./CommentsAlternative";
 import BookingHistory from "./BookingHistory";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { History, ChevronLeft, ChevronRight } from "lucide-react";
+import { History } from "lucide-react";
 import type { Member, Booking, Comment } from "@shared/schema";
-import { format, parseISO, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, setHours, setMinutes, subMonths } from "date-fns";
+import { getMaxCapacityForDate } from "@shared/booking-capacity";
+import { format, parseISO, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, isAfter } from "date-fns";
 
 interface DayCardProps {
   date: Date;
@@ -26,15 +27,16 @@ interface DayCardProps {
 function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooking, isCancelling, isBookLocked, selectedMemberId }: DayCardProps) {
   const dateStr = format(date, "yyyy-MM-dd");
   const dayBookings = bookings.filter(b => b.date === dateStr);
+  const maxSlots = getMaxCapacityForDate(dateStr);
   const isToday = isSameDay(date, new Date());
   const isWeekendDay = isWeekend(date);
 
-  // Check if date is in the past or today after 9:30 AM
+  // Allow booking anytime, but only within a rolling 4-week window.
   const now = new Date();
-  const cutoffTime = setMinutes(setHours(new Date(), 9), 30); // 9:30 AM today
+  const bookingWindowEnd = addDays(startOfDay(now), 27);
   const isPastDate = isBefore(startOfDay(date), startOfDay(now));
-  const isTodayAfterCutoff = isToday && now >= cutoffTime;
-  const isBookingDisabled = isPastDate || isTodayAfterCutoff;
+  const isBeyondWindow = isAfter(startOfDay(date), bookingWindowEnd);
+  const isBookingDisabled = isPastDate || isBeyondWindow;
 
   // Check if selected member has a booking for this date
   const memberBooking = dayBookings.find(b => b.memberId === selectedMemberId);
@@ -56,9 +58,9 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
     }
     if (isBookingDisabled && !hasSelectedMemberBooking) {
       if (isPastDate) return "Past Date";
-      if (isTodayAfterCutoff) return "Booking Closed";
+      if (isBeyondWindow) return "Outside Window";
     }
-    if (dayBookings.length >= 6 && !hasSelectedMemberBooking) {
+    if (dayBookings.length >= maxSlots && !hasSelectedMemberBooking) {
       return "Fully Booked";
     }
     if (hasSelectedMemberBooking) {
@@ -70,8 +72,8 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
   const isButtonDisabled = () => {
     if (!selectedMemberId) return true;
     if (isBooking || isCancelling || isBookLocked) return true;
-    if (dayBookings.length >= 6 && !hasSelectedMemberBooking) return true;
-    // Disable booking for past dates or today after 9:30 AM (but allow cancellation)
+    if (dayBookings.length >= maxSlots && !hasSelectedMemberBooking) return true;
+    // Disable booking for dates outside the active booking window.
     if (isBookingDisabled && !hasSelectedMemberBooking) return true;
     // Allow cancellation even for past bookings, but disable new bookings
     if (isBookingDisabled && hasSelectedMemberBooking) return true;
@@ -92,7 +94,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
             {format(date, "EEE, MMM d")}
           </h4>
           <p className="text-sm text-gray-500" data-testid={`day-label-${dateStr}`}>
-            {isToday ? (isTodayAfterCutoff ? "Today (Closed)" : "Today") : 
+            {isToday ? "Today" : 
              isPastDate ? "Past" : 
              format(date, "EEEE")}
           </p>
@@ -101,7 +103,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
           <span className={`text-sm font-medium ${
             isBookingDisabled ? "text-gray-500" : "text-gray-600"
           }`} data-testid={`slot-count-${dateStr}`}>
-            {dayBookings.length}/6
+            {dayBookings.length}/{maxSlots}
           </span>
           <div className={`w-2 h-2 rounded-full ml-2 ${
             isBookingDisabled ? "bg-gray-400" : "bg-green-500"
@@ -169,7 +171,6 @@ export default function BookingCalendar() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { selectedMemberId, selectedMember } = useSelectedMember();
-  const [dateOffset, setDateOffset] = useState(0);
   const bookingLockRef = useRef<Set<string>>(new Set());
   const [bookingLocks, setBookingLocks] = useState<Record<string, true>>({});
 
@@ -260,85 +261,55 @@ export default function BookingCalendar() {
   });
 
   const today = new Date();
-  const startOfThisWeek = startOfWeek(addDays(today, dateOffset), { weekStartsOn: 1 });
+  const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 });
   const weekDays: Date[] = [];
 
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 28; i++) {
     const day = addDays(startOfThisWeek, i);
     if (!isWeekend(day)) {
       weekDays.push(day);
     }
   }
 
-  const week1 = weekDays.slice(0, 5);
-  const week2 = weekDays.slice(5, 10);
-
-  const twoMonthsAgo = subMonths(today, 2);
-  const isPrevDisabled = startOfWeek(addDays(today, dateOffset - 14), { weekStartsOn: 1 }) < twoMonthsAgo;
-  const isNextDisabled = dateOffset >= 0;
+  const weeks = [
+    weekDays.slice(0, 5),
+    weekDays.slice(5, 10),
+    weekDays.slice(10, 15),
+    weekDays.slice(15, 20),
+  ];
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8" data-testid="booking-calendar">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-lg font-medium text-gray-900">Booking Window</h2>
-          <p className="text-sm text-gray-600">Weekdays only (Monday - Friday)</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setDateOffset(dateOffset - 14)} disabled={isPrevDisabled}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={() => setDateOffset(dateOffset + 14)} disabled={isNextDisabled}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <p className="text-sm text-gray-600">Weekdays only (Monday - Friday), next 4 weeks</p>
         </div>
       </div>
 
-      {/* Week 1 */}
-      <div className="mb-8">
-        <h3 className="text-center text-sm font-medium text-gray-500 mb-6" data-testid="week-1-label">
-          Week of {format(week1[0], "MMM d")}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {week1.map((date) => (
-            <DayCard 
-              key={date.toISOString()}
-              date={date}
-              bookings={bookings}
-              members={members}
-              onBookSlot={handleBookSlot}
-              onCancelBooking={(memberId, date) => cancelBookingMutation.mutate({ memberId, date })}
-              isBooking={bookSlotMutation.isPending}
-              isCancelling={cancelBookingMutation.isPending}
-              isBookLocked={!!bookingLocks[`${selectedMemberId}:${format(date, "yyyy-MM-dd")}`]}
-              selectedMemberId={selectedMemberId}
-            />
-          ))}
+      {weeks.map((week, index) => (
+        <div key={`week-${index}`} className={index < weeks.length - 1 ? "mb-8" : ""}>
+          <h3 className="text-center text-sm font-medium text-gray-500 mb-6" data-testid={`week-${index + 1}-label`}>
+            Week of {format(week[0], "MMM d")}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {week.map((date) => (
+              <DayCard
+                key={date.toISOString()}
+                date={date}
+                bookings={bookings}
+                members={members}
+                onBookSlot={handleBookSlot}
+                onCancelBooking={(memberId, bookingDate) => cancelBookingMutation.mutate({ memberId, date: bookingDate })}
+                isBooking={bookSlotMutation.isPending}
+                isCancelling={cancelBookingMutation.isPending}
+                isBookLocked={!!bookingLocks[`${selectedMemberId}:${format(date, "yyyy-MM-dd")}`]}
+                selectedMemberId={selectedMemberId}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* Week 2 */}
-      <div>
-        <h3 className="text-center text-sm font-medium text-gray-500 mb-6" data-testid="week-2-label">
-          Week of {format(week2[0], "MMM d")}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {week2.map((date) => (
-            <DayCard 
-              key={date.toISOString()}
-              date={date}
-              bookings={bookings}
-              members={members}
-              onBookSlot={handleBookSlot}
-              onCancelBooking={(memberId, date) => cancelBookingMutation.mutate({ memberId, date })}
-              isBooking={bookSlotMutation.isPending}
-              isCancelling={cancelBookingMutation.isPending}
-              isBookLocked={!!bookingLocks[`${selectedMemberId}:${format(date, "yyyy-MM-dd")}`]}
-              selectedMemberId={selectedMemberId}
-            />
-          ))}
-        </div>
-      </div>
+      ))}
     </div>
   );
 }

@@ -39,7 +39,9 @@ export default function Header() {
           </span>
           <span className="flex items-center">
             <Calendar className="w-4 h-4 mr-2" />
-            <span data-testid="available-slots">6 slots available daily</span>
+            <span data-testid="available-slots">
+              5 slots available daily
+            </span>
           </span>
           <HeaderNavigation />
         </div>
