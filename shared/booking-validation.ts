@@ -1,4 +1,8 @@
 import { getMaxCapacityForDate } from "./booking-capacity.js";
+import {
+  isSameDayLockedAfterCutoffInIst,
+  SAME_DAY_BOOKING_LOCK_MESSAGE,
+} from "./booking-time-policy.js";
 
 export interface BookingValidationBooking {
   memberId: string;
@@ -41,6 +45,13 @@ export async function validateBookingRequest(
         message: "Bookings are only allowed on weekdays (Monday-Friday)",
       };
     }
+  }
+
+  if (isSameDayLockedAfterCutoffInIst(date)) {
+    return {
+      status: 400,
+      message: SAME_DAY_BOOKING_LOCK_MESSAGE,
+    };
   }
 
   const existingBookings = await getBookingsByDate(date);

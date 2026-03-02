@@ -17,6 +17,10 @@ import {
   subscribeToAiChatProgress,
 } from "../server/ai/sql-chat-service.js";
 import { getMaxCapacityForDate } from "../shared/booking-capacity.js";
+import {
+  isSameDayLockedAfterCutoffInIst,
+  SAME_DAY_BOOKING_LOCK_MESSAGE,
+} from "../shared/booking-time-policy.js";
 
 // Database schema - inlined to avoid import issues
 const members = pgTable("members", {
@@ -78,6 +82,14 @@ async function validateBookingRequestLocal(params: {
     getBookingsByDate,
     maxCapacity = getMaxCapacityForDate(date),
   } = params;
+
+  if (isSameDayLockedAfterCutoffInIst(date)) {
+    return {
+      status: 400,
+      message: SAME_DAY_BOOKING_LOCK_MESSAGE,
+    };
+  }
+
   const existingBookings = await getBookingsByDate(date);
 
   const hasExistingMemberBooking = existingBookings.some(
@@ -436,6 +448,10 @@ app.post("/api/bookings", async (req, res) => {
 app.delete("/api/bookings/:memberId/:date", async (req, res) => {
   try {
     const { memberId, date } = req.params;
+
+    if (isSameDayLockedAfterCutoffInIst(date)) {
+      return res.status(400).json({ message: SAME_DAY_BOOKING_LOCK_MESSAGE });
+    }
     
     const deleted = await storage.deleteBooking(memberId, date);
     

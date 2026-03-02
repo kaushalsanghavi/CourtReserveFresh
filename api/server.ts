@@ -4,6 +4,10 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { members, bookings, activities, comments, bookSlotSchema, insertCommentSchema } from "../shared/schema.js";
 import { validateBookingRequest } from "../shared/booking-validation.js";
+import {
+  isSameDayLockedAfterCutoffInIst,
+  SAME_DAY_BOOKING_LOCK_MESSAGE,
+} from "../shared/booking-time-policy.js";
 import { DUPLICATE_BOOKING_MESSAGE, isDuplicateBookingError } from "./booking-errors.js";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -300,6 +304,10 @@ export async function setupRoutes(app: Express) {
       
       if (!memberId || !date) {
         return res.status(400).json({ error: "memberId and date are required" });
+      }
+
+      if (isSameDayLockedAfterCutoffInIst(date as string)) {
+        return res.status(400).json({ error: SAME_DAY_BOOKING_LOCK_MESSAGE });
       }
 
       const success = await storage.deleteBooking(memberId as string, date as string);

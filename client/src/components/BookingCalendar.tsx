@@ -10,6 +10,10 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { History } from "lucide-react";
 import type { Member, Booking, Comment } from "@shared/schema";
 import { getMaxCapacityForDate } from "@shared/booking-capacity";
+import {
+  isSameDayLockedAfterCutoffInIst,
+  SAME_DAY_BOOKING_LOCK_MESSAGE,
+} from "@shared/booking-time-policy";
 import { format, parseISO, addDays, startOfWeek, isWeekend, isSameDay, isBefore, startOfDay, isAfter } from "date-fns";
 
 interface DayCardProps {
@@ -36,7 +40,8 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
   const bookingWindowEnd = addDays(startOfDay(now), 27);
   const isPastDate = isBefore(startOfDay(date), startOfDay(now));
   const isBeyondWindow = isAfter(startOfDay(date), bookingWindowEnd);
-  const isBookingDisabled = isPastDate || isBeyondWindow;
+  const isSameDayLocked = isSameDayLockedAfterCutoffInIst(dateStr);
+  const isBookingDisabled = isPastDate || isBeyondWindow || isSameDayLocked;
 
   // Check if selected member has a booking for this date
   const memberBooking = dayBookings.find(b => b.memberId === selectedMemberId);
@@ -59,11 +64,13 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
     if (isBookingDisabled && !hasSelectedMemberBooking) {
       if (isPastDate) return "Past Date";
       if (isBeyondWindow) return "Outside Window";
+      if (isSameDayLocked) return "Closed";
     }
     if (dayBookings.length >= maxSlots && !hasSelectedMemberBooking) {
       return "Fully Booked";
     }
     if (hasSelectedMemberBooking) {
+      if (isSameDayLocked) return "Closed";
       return isBookingDisabled ? "Booked (Past)" : "Cancel Booking";
     }
     return "Book Slot";
@@ -94,7 +101,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
             {format(date, "EEE, MMM d")}
           </h4>
           <p className="text-sm text-gray-500" data-testid={`day-label-${dateStr}`}>
-            {isToday ? "Today" : 
+            {isToday ? (isSameDayLocked ? "Today (Closed)" : "Today") : 
              isPastDate ? "Past" : 
              format(date, "EEEE")}
           </p>
@@ -206,6 +213,13 @@ export default function BookingCalendar() {
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     },
     onError: (error: Error, date: string) => {
+      if (error.message.includes(SAME_DAY_BOOKING_LOCK_MESSAGE)) {
+        toast({
+          title: "Booking closed",
+          description: "Changes for today are closed after 9:30 AM IST.",
+        });
+        return;
+      }
       if (isAlreadyBookedConflict(error)) {
         toast({
           title: "Already booked",
@@ -256,6 +270,13 @@ export default function BookingCalendar() {
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     },
     onError: (error: Error) => {
+      if (error.message.includes(SAME_DAY_BOOKING_LOCK_MESSAGE)) {
+        toast({
+          title: "Booking closed",
+          description: "Changes for today are closed after 9:30 AM IST.",
+        });
+        return;
+      }
       toast({ title: "Cancellation failed", description: error.message, variant: "destructive" });
     },
   });

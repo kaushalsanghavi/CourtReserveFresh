@@ -4,6 +4,10 @@ import { storage } from "./storage.js";
 import { bookSlotSchema, insertCommentSchema } from "../shared/schema.js";
 import { validateBookingRequest } from "../shared/booking-validation.js";
 import {
+  isSameDayLockedAfterCutoffInIst,
+  SAME_DAY_BOOKING_LOCK_MESSAGE,
+} from "../shared/booking-time-policy.js";
+import {
   DUPLICATE_BOOKING_MESSAGE,
   isDuplicateBookingError,
 } from "../api/booking-errors.js";
@@ -165,6 +169,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/bookings/:memberId/:date", async (req, res) => {
     try {
       const { memberId, date } = req.params;
+
+      if (isSameDayLockedAfterCutoffInIst(date)) {
+        return res.status(400).json({ message: SAME_DAY_BOOKING_LOCK_MESSAGE });
+      }
       
       const deleted = await storage.deleteBooking(memberId, date);
       
