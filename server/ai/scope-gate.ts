@@ -8,6 +8,10 @@ const IN_SCOPE_TERMS = [
   "badminton",
   "courtreserve",
   "court",
+  "courts",
+  "book",
+  "books",
+  "booked",
   "booking",
   "bookings",
   "slot",
@@ -27,6 +31,31 @@ const IN_SCOPE_TERMS = [
   "smash",
   "doubles",
   "singles",
+];
+
+const BOOKING_ANALYTICS_CUES = [
+  "how busy",
+  "busiest",
+  "most common",
+  "first person",
+  "first to book",
+  "same time",
+  "at the same time",
+  "who usually",
+  "who often",
+  "who tends to",
+];
+
+const TEMPORAL_CUES = [
+  "today",
+  "tonight",
+  "tomorrow",
+  "this week",
+  "this month",
+  "this quarter",
+  "given day",
+  "per day",
+  "daily",
 ];
 
 const CLEAR_OUT_OF_SCOPE_TERMS = [
@@ -64,6 +93,15 @@ function deterministicScopeDecision(message: string): ScopeDecision {
   const hasClearOutOfScope = CLEAR_OUT_OF_SCOPE_TERMS.some((term) =>
     lower.includes(term),
   );
+  const hasBookingAnalyticsCue = BOOKING_ANALYTICS_CUES.some((term) =>
+    lower.includes(term),
+  );
+  const hasTemporalCue = TEMPORAL_CUES.some((term) => lower.includes(term));
+
+  // Treat implicit booking analytics phrasing as in-scope to avoid false refusals.
+  if (hasBookingAnalyticsCue && (hasTemporalCue || lower.includes("book"))) {
+    return "IN_SCOPE";
+  }
 
   if (hasClearOutOfScope && !hasInScope) {
     return "OUT_OF_SCOPE_CLEAR";
@@ -83,6 +121,9 @@ You are a strict scope classifier for CourtReserve AI chat.
 
 Allowed scope:
 - badminton questions tied to CourtReserve data (members, bookings, participation, activity, comments)
+- implicit booking analytics phrasing, even without the word badminton
+  (examples: "How busy will it be today?", "Who books many days at the same time?",
+  "For any given day, who's the most common first person to book?")
 
 Disallowed scope:
 - generic world knowledge and non-badminton topics (weather, finance, politics, coding, entertainment)
