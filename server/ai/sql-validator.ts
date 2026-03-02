@@ -319,10 +319,31 @@ function collectAliasesForStatement(
   return { aliasToRelation, relations: Array.from(relations) };
 }
 
+function collectSelectAliases(statement: AstNode): Set<string> {
+  const aliases = new Set<string>();
+  const columns = statement.columns;
+  if (!Array.isArray(columns)) {
+    return aliases;
+  }
+
+  for (const item of columns) {
+    if (!isObjectLike(item) || typeof item.as !== "string") {
+      continue;
+    }
+    const alias = normalizeIdentifier(item.as);
+    if (alias) {
+      aliases.add(alias);
+    }
+  }
+
+  return aliases;
+}
+
 function findUnknownColumnInStatement(
   statement: AstNode,
 ): ColumnValidationFailure | null {
   const { aliasToRelation, relations } = collectAliasesForStatement(statement);
+  const selectAliases = collectSelectAliases(statement);
   let failure: ColumnValidationFailure | null = null;
 
   walkAstInSingleSelect(statement, (node) => {
@@ -363,6 +384,10 @@ function findUnknownColumnInStatement(
     }
 
     if (relations.length === 0) {
+      return;
+    }
+
+    if (selectAliases.has(column)) {
       return;
     }
 
