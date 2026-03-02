@@ -62,7 +62,10 @@ Rules:
 - always include LIMIT <= 200
 - prefer LIMIT 100 if unsure
 - answer ONLY from CourtReserve badminton domain data
-- timezone context: ${clientTimeZone ?? "server default timezone"}
+- Use ONLY these SQL functions: COUNT, SUM, AVG, MIN, MAX, DATE_TRUNC, EXTRACT, DATE_PART, CAST, COALESCE, LOWER, UPPER, ROUND, NULLIF, CURRENT_DATE, CURRENT_TIMESTAMP, NOW, TIMEZONE
+- Avoid AT TIME ZONE syntax; prefer DATE_TRUNC/EXTRACT with CURRENT_DATE or CURRENT_TIMESTAMP
+- Prefer ai_booking_facts.member_name directly for booking leaderboards (avoid unnecessary joins)
+- timezone context for relative dates: ${clientTimeZone ?? "server default timezone"}
 
 Return JSON only:
 {"sql":"...","intent":"...","confidence":0.0}

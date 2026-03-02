@@ -6,6 +6,39 @@ async function setupAiViews(): Promise<void> {
 
   await db.execute(
     sql.raw(`
+      CREATE TABLE IF NOT EXISTS ${schema}.ai_chat_traces (
+        id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        request_id text NOT NULL UNIQUE,
+        mode text NOT NULL,
+        scope_decision text,
+        intent text,
+        sql_text text,
+        validation_outcome text,
+        row_count integer,
+        exec_ms integer,
+        fallback_reason text,
+        decision_summary text,
+        created_at timestamp NOT NULL DEFAULT now()
+      )
+    `),
+  );
+
+  await db.execute(
+    sql.raw(`
+      CREATE INDEX IF NOT EXISTS ai_chat_traces_request_id_idx
+      ON ${schema}.ai_chat_traces (request_id)
+    `),
+  );
+
+  await db.execute(
+    sql.raw(`
+      CREATE INDEX IF NOT EXISTS ai_chat_traces_created_at_idx
+      ON ${schema}.ai_chat_traces (created_at DESC)
+    `),
+  );
+
+  await db.execute(
+    sql.raw(`
       CREATE OR REPLACE VIEW ${schema}.ai_booking_facts AS
       SELECT
         id AS booking_id,
@@ -63,7 +96,7 @@ async function setupAiViews(): Promise<void> {
     `),
   );
 
-  console.log(`AI analytics views created/updated in schema "${schema}".`);
+  console.log(`AI analytics views and trace table created/updated in schema "${schema}".`);
 }
 
 setupAiViews().catch((error: unknown) => {

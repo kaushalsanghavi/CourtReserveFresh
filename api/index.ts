@@ -14,6 +14,7 @@ import {
 import {
   AiChatRequestError,
   handleAiChatRequest,
+  subscribeToAiChatProgress,
 } from "../server/ai/sql-chat-service.js";
 
 // Database schema - inlined to avoid import issues
@@ -801,6 +802,32 @@ async function getAiReply(userMessage: string): Promise<string> {
   return await generateText(prompt);
 }
 
+app.get("/api/ai/chat/stream", (req, res) => {
+  const requestId = String(req.query.requestId || "").trim();
+  if (!requestId) {
+    return res.status(400).json({ message: "requestId is required." });
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const heartbeat = setInterval(() => {
+    res.write(": ping\n\n");
+  }, 15000);
+
+  const unsubscribe = subscribeToAiChatProgress(requestId, (event) => {
+    res.write(`event: stage\ndata: ${JSON.stringify(event)}\n\n`);
+  });
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    unsubscribe();
+    res.end();
+  });
+});
+
 app.post("/api/ai/chat", async (req, res) => {
   try {
     const response = await handleAiChatRequest(
@@ -808,6 +835,7 @@ app.post("/api/ai/chat", async (req, res) => {
         message: req.body?.message,
         clientTimeZone: req.body?.clientTimeZone,
         debug: req.body?.debug,
+        requestId: req.body?.requestId,
       },
       getAiReply,
     );

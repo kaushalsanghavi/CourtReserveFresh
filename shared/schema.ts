@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, index, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -38,6 +38,28 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const aiChatTraces = pgTable(
+  "ai_chat_traces",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    requestId: text("request_id").notNull().unique(),
+    mode: text("mode").notNull(),
+    scopeDecision: text("scope_decision"),
+    intent: text("intent"),
+    sqlText: text("sql_text"),
+    validationOutcome: text("validation_outcome"),
+    rowCount: integer("row_count"),
+    execMs: integer("exec_ms"),
+    fallbackReason: text("fallback_reason"),
+    decisionSummary: text("decision_summary"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    requestIdIdx: index("ai_chat_traces_request_id_idx").on(table.requestId),
+    createdAtIdx: index("ai_chat_traces_created_at_idx").on(table.createdAt),
+  }),
+);
+
 export const insertMemberSchema = createInsertSchema(members).omit({
   id: true,
   createdAt: true,
@@ -66,6 +88,7 @@ export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Comment = typeof comments.$inferSelect;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
+export type AiChatTrace = typeof aiChatTraces.$inferSelect;
 
 export const bookSlotSchema = z.object({
   memberId: z.string().min(1),

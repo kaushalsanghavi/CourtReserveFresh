@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import dotenv from "dotenv";
+import { logDatabaseStartupHealth } from "./db.js";
 
 // Load environment variables from .env.local for development
 if (process.env.NODE_ENV !== 'production') {
@@ -78,5 +79,6 @@ app.use((req, res, next) => {
   
   server.listen(port, host, () => {
     log(`serving on ${host}:${port}`);
+    void logDatabaseStartupHealth();
   });
 })();

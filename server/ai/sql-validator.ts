@@ -19,12 +19,17 @@ const ALLOWED_FUNCTIONS = new Set([
   "max",
   "date_trunc",
   "extract",
+  "date_part",
   "cast",
   "coalesce",
   "lower",
   "upper",
   "round",
   "nullif",
+  "current_timestamp",
+  "current_date",
+  "now",
+  "timezone",
 ]);
 
 const DISALLOWED_KEYWORDS = [
