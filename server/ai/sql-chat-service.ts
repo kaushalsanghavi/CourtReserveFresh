@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 import { lt } from "drizzle-orm";
 import { aiChatTraces } from "../../shared/schema.js";
 import { db } from "../db.js";
@@ -15,6 +15,7 @@ import { validateGeneratedSql } from "./sql-validator.js";
 import { executeSqlReadOnly } from "./sql-executor.js";
 import { synthesizeAnswerFromRows } from "./answer-synthesizer.js";
 import { formatSqlSchemaDictionary } from "./sql-surface.js";
+import type { LlmModel } from "./llm-model.js";
 
 type LegacyHandler = (message: string) => Promise<string>;
 
@@ -196,14 +197,30 @@ Regenerate a single safe SELECT query that uses only valid columns.`;
 }
 
 function getModel() {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return null;
   }
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({
-    model: process.env.AI_SQL_MODEL || "gemini-1.5-flash",
-  });
+  const client = new OpenAI({ apiKey });
+  const modelName = process.env.AI_SQL_MODEL || "gpt-4o-mini";
+
+  const model: LlmModel = {
+    async generateContent(prompt: string) {
+      const result = await client.chat.completions.create({
+        model: modelName,
+        temperature: 0,
+        messages: [{ role: "user", content: prompt }],
+      });
+      const text = result.choices[0]?.message?.content?.trim() ?? "";
+      return {
+        response: {
+          text: () => text,
+        },
+      };
+    },
+  };
+
+  return model;
 }
 
 function emitProgress(
@@ -342,16 +359,16 @@ async function attemptSqlPipeline(
   };
 
   if (!model) {
-    telemetry.fallbackReason = "AI chat is not configured: missing GEMINI_API_KEY";
+    telemetry.fallbackReason = "AI chat is not configured: missing OPENAI_API_KEY";
     return {
       response: clarifyResponse(
         requestId,
         undefined,
-        "AI chat is not configured. Please set GEMINI_API_KEY.",
+        "AI chat is not configured. Please set OPENAI_API_KEY.",
       ),
       telemetry: {
         ...telemetry,
-        error: "Missing GEMINI_API_KEY",
+        error: "Missing OPENAI_API_KEY",
       },
     };
   }

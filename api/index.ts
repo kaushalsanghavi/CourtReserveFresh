@@ -589,9 +589,7 @@ app.post("/api/comments/:date", async (req, res) => {
   }
 });
 
-import {
-  GoogleGenerativeAI
-} from '@google/generative-ai';
+import OpenAI from "openai";
 import {
   startOfWeek,
   endOfWeek,
@@ -610,21 +608,22 @@ You are an AI assistant for the 'CourtReserve' application. Your ONLY purpose is
 - Use ONLY the data provided in the 'Context' section to answer the user's question. Do not make up information.
 `;
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
 
 async function generateText(prompt: string): Promise<string> {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY is not set in the environment variables.");
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is not set in the environment variables.");
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    return text;
+    const result = await openai.chat.completions.create({
+      model: process.env.AI_LEGACY_MODEL || "gpt-4o-mini",
+      temperature: 0.2,
+      messages: [{ role: "user", content: prompt }],
+    });
+    return result.choices[0]?.message?.content?.trim() ?? "";
   } catch (error) {
-    console.error("Error generating text from Gemini:", error);
+    console.error("Error generating text from OpenAI:", error);
     throw new Error("Failed to generate text from AI model.");
   }
 }

@@ -1,4 +1,4 @@
-import type { GenerativeModel } from "@google/generative-ai";
+import type { LlmModel } from "./llm-model.js";
 
 export interface SynthesizeAnswerInput {
   question: string;
@@ -6,7 +6,7 @@ export interface SynthesizeAnswerInput {
 }
 
 export async function synthesizeAnswerFromRows(
-  model: GenerativeModel,
+  model: LlmModel,
   input: SynthesizeAnswerInput,
 ): Promise<string> {
   const { question, rows } = input;

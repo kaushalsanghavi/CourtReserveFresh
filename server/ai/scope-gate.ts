@@ -1,4 +1,4 @@
-import type { GenerativeModel } from "@google/generative-ai";
+import type { LlmModel } from "./llm-model.js";
 import {
   scopeDecisionSchema,
   type ScopeDecision,
@@ -76,7 +76,7 @@ function deterministicScopeDecision(message: string): ScopeDecision {
 
 export async function llmClassifyScope(
   message: string,
-  model: GenerativeModel,
+  model: LlmModel,
 ): Promise<ScopeDecision> {
   const prompt = `
 You are a strict scope classifier for CourtReserve AI chat.
@@ -112,7 +112,7 @@ ${message}
 
 export async function runScopeGate(
   message: string,
-  model: GenerativeModel,
+  model: LlmModel,
 ): Promise<ScopeDecision> {
   const firstPass = deterministicScopeDecision(message);
   if (firstPass !== "BORDERLINE") {

@@ -1,4 +1,4 @@
-import type { GenerativeModel } from "@google/generative-ai";
+import type { LlmModel } from "./llm-model.js";
 import {
   sqlGenerationSchema,
   type SqlGeneration,
@@ -32,7 +32,7 @@ export interface GenerateSqlInput {
 }
 
 export async function generateSqlForQuestion(
-  model: GenerativeModel,
+  model: LlmModel,
   input: GenerateSqlInput,
 ): Promise<SqlGeneration> {
   const { message, clientTimeZone, previousError } = input;
