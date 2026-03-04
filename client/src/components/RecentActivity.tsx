@@ -79,7 +79,7 @@ export function collapseActivitySessions(
   for (const activity of activities) {
     if (result.length >= limit) break;
 
-    const isBooking = activity.action === "booked a slot for";
+    const isBooking = activity.action.startsWith("booked");
 
     if (!isBooking) {
       flushPending();
@@ -171,7 +171,7 @@ export default function RecentActivity() {
             if (item.kind === "single") {
               return (
                 <div key={item.id} className="flex items-start space-x-3" data-testid={`activity-${item.id}`}>
-                  <div className={`w-2 h-2 rounded-full mt-2 ${item.action === "booked a slot for" ? "bg-green-500" : "bg-red-400"}`}></div>
+                  <div className={`w-2 h-2 rounded-full mt-2 ${item.action.startsWith("booked") ? "bg-green-500" : "bg-red-400"}`}></div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-900">
                       <span className="font-medium" data-testid={`activity-member-${item.id}`}>
