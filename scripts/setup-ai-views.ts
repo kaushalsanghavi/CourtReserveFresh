@@ -1,8 +1,11 @@
 import { sql } from "drizzle-orm";
 import { db, getCurrentSchema } from "../server/db";
+import { ensureMemberStatusSchema } from "../server/member-status";
 
 async function setupAiViews(): Promise<void> {
   const schema = getCurrentSchema();
+
+  await ensureMemberStatusSchema({ db, schemaName: schema });
 
   await db.execute(
     sql.raw(`
@@ -76,6 +79,8 @@ async function setupAiViews(): Promise<void> {
         name,
         initials,
         avatar_color,
+        is_active,
+        status_changed_at,
         created_at AS member_created_at
       FROM ${schema}.members
     `),

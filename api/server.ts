@@ -9,9 +9,17 @@ import {
   SAME_DAY_BOOKING_LOCK_MESSAGE,
 } from "../shared/booking-time-policy.js";
 import { DUPLICATE_BOOKING_MESSAGE, isDuplicateBookingError } from "./booking-errors.js";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { z } from "zod";
 import type { Express } from "express";
+import type { Member } from "../shared/schema.js";
+import {
+  ensureMemberStatusSchema,
+  INACTIVE_MEMBER_BOOKING_MESSAGE,
+  isMemberActive,
+  normalizeMemberStatusFilter,
+  type MemberStatusFilter,
+} from "../server/member-status.js";
 
 // Database setup
 const connection = neon(process.env.DATABASE_URL!);
@@ -92,8 +100,23 @@ function parseUserAgent(userAgent: string): string {
 // Storage class
 class DatabaseStorage {
   // Members
-  async getMembers() {
-    return await db.select().from(members).orderBy(members.name);
+  async getMembers(status: MemberStatusFilter = "all") {
+    const query = db.select().from(members);
+
+    if (status === "active") {
+      return await query.where(eq(members.isActive, true)).orderBy(members.name);
+    }
+
+    if (status === "inactive") {
+      return await query.where(eq(members.isActive, false)).orderBy(members.name);
+    }
+
+    return await query.orderBy(members.name);
+  }
+
+  async getMemberById(memberId: string): Promise<Member | undefined> {
+    const [member] = await db.select().from(members).where(eq(members.id, memberId)).limit(1);
+    return member;
   }
 
   async createMember(member: any) {
@@ -218,10 +241,19 @@ const storage = new DatabaseStorage();
 
 // Routes setup
 export async function setupRoutes(app: Express) {
+  await ensureMemberStatusSchema({ db, schemaName: "public" });
+
   // Members routes
   app.get("/api/members", async (req, res) => {
     try {
-      const memberList = await storage.getMembers();
+      const status = normalizeMemberStatusFilter(req.query.status);
+      if (!status) {
+        return res
+          .status(400)
+          .json({ error: "Invalid member status filter. Use active, inactive, or all." });
+      }
+
+      const memberList = await storage.getMembers(status);
       res.json(memberList);
     } catch (error) {
       console.error("Error fetching members:", error);
@@ -263,6 +295,14 @@ export async function setupRoutes(app: Express) {
   app.post("/api/bookings", async (req, res) => {
     try {
       const bookingData = bookSlotSchema.parse(req.body);
+      const member = await storage.getMemberById(bookingData.memberId);
+      if (!member) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+      if (!isMemberActive(member)) {
+        return res.status(403).json({ error: INACTIVE_MEMBER_BOOKING_MESSAGE });
+      }
+
       const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
       const validationError = await validateBookingRequest({
         date: bookingData.date,
@@ -275,11 +315,12 @@ export async function setupRoutes(app: Express) {
       
       const booking = await storage.createBooking({
         ...bookingData,
+        memberName: member.name,
       });
 
       await storage.createActivity({
         memberId: bookingData.memberId,
-        memberName: bookingData.memberName,
+        memberName: member.name,
         action: 'booked',
         date: bookingData.date,
         deviceInfo,

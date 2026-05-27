@@ -4,6 +4,7 @@ import { freezeTime, installMockApi } from "./mockApi";
 
 const AFTER_CUTOFF_NOW = "2026-03-02T10:00:00+05:30";
 const BEFORE_CUTOFF_NOW = "2026-03-02T08:45:00+05:30";
+const COOKIE_SAFE_NOW = "2030-03-02T10:00:00+05:30";
 const MEMBER_ID = "m1";
 
 async function setSelectedMemberCookie(page: Page) {
@@ -26,6 +27,7 @@ async function loadWithMocks(
     nowIso: string;
     forceCutoffBookDates?: string[];
     forceDuplicateBookDates?: string[];
+    inactiveMemberIds?: string[];
     setMemberCookie?: boolean;
   },
 ) {
@@ -34,6 +36,7 @@ async function loadWithMocks(
     nowIso: options.nowIso,
     forceCutoffBookDates: options.forceCutoffBookDates,
     forceDuplicateBookDates: options.forceDuplicateBookDates,
+    inactiveMemberIds: options.inactiveMemberIds,
   });
   if (options.setMemberCookie !== false) {
     await setSelectedMemberCookie(page);
@@ -57,18 +60,36 @@ test("tabs and shell layout does not regress", async ({ page }) => {
 });
 
 test("selected member persists via cookie across reloads", async ({ page }) => {
-  await loadWithMocks(page, { nowIso: AFTER_CUTOFF_NOW, setMemberCookie: false });
+  await loadWithMocks(page, { nowIso: COOKIE_SAFE_NOW, setMemberCookie: false });
 
   await page.getByTestId("select-member").click();
   await page.locator("[role='option']", { hasText: "Kaushal" }).first().click();
   await expect(page.getByText("Selected: Kaushal")).toBeVisible();
 
-  const cookies = await page.context().cookies("http://127.0.0.1:4173");
-  const selected = cookies.find((cookie) => cookie.name === "lastSelectedMember");
-  expect(selected?.value).toBe(MEMBER_ID);
+  await expect
+    .poll(async () => page.evaluate(() => document.cookie))
+    .toContain(`lastSelectedMember=${MEMBER_ID}`);
 
   await page.reload();
   await expect(page.getByText("Selected: Kaushal")).toBeVisible();
+});
+
+test("inactive members are hidden from quick booking and stale cookies are cleared", async ({ page }) => {
+  await loadWithMocks(page, {
+    nowIso: AFTER_CUTOFF_NOW,
+    inactiveMemberIds: ["m1"],
+  });
+
+  await expect(page.getByText("Selected: Kaushal")).toHaveCount(0);
+  await expect(page.getByTestId("booked-members-2026-03-04")).toContainText("Kaushal");
+
+  await page.getByTestId("select-member").click();
+  await expect(page.locator("[role='option']", { hasText: "Kaushal" })).toHaveCount(0);
+  await expect(page.locator("[role='option']", { hasText: "Kumar" })).toHaveCount(1);
+
+  await expect
+    .poll(async () => page.evaluate(() => document.cookie))
+    .not.toContain("lastSelectedMember=");
 });
 
 test("previous-week traversal remains available for viewing comments and history", async ({ page }) => {

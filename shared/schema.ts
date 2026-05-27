@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, index, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, index, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -8,6 +8,8 @@ export const members = pgTable("members", {
   name: text("name").notNull(),
   initials: text("initials").notNull(),
   avatarColor: text("avatar_color").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  statusChangedAt: timestamp("status_changed_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -38,6 +40,26 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const memberStatusEvents = pgTable(
+  "member_status_events",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    memberId: varchar("member_id").notNull(),
+    fromIsActive: boolean("from_is_active").notNull(),
+    toIsActive: boolean("to_is_active").notNull(),
+    changedBy: text("changed_by").notNull(),
+    reason: text("reason"),
+    source: text("source").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    memberCreatedAtIdx: index("member_status_events_member_id_created_at_idx").on(
+      table.memberId,
+      table.createdAt,
+    ),
+  }),
+);
+
 export const aiChatTraces = pgTable(
   "ai_chat_traces",
   {
@@ -62,6 +84,8 @@ export const aiChatTraces = pgTable(
 
 export const insertMemberSchema = createInsertSchema(members).omit({
   id: true,
+  isActive: true,
+  statusChangedAt: true,
   createdAt: true,
 });
 
@@ -80,6 +104,11 @@ export const insertCommentSchema = createInsertSchema(comments).omit({
   createdAt: true,
 });
 
+export const insertMemberStatusEventSchema = createInsertSchema(memberStatusEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type Member = typeof members.$inferSelect;
 export type InsertMember = z.infer<typeof insertMemberSchema>;
 export type Booking = typeof bookings.$inferSelect;
@@ -88,6 +117,8 @@ export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Comment = typeof comments.$inferSelect;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
+export type MemberStatusEvent = typeof memberStatusEvents.$inferSelect;
+export type InsertMemberStatusEvent = z.infer<typeof insertMemberStatusEventSchema>;
 export type AiChatTrace = typeof aiChatTraces.$inferSelect;
 
 export const bookSlotSchema = z.object({

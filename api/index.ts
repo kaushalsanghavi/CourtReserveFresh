@@ -1,7 +1,7 @@
 import express from "express";
 import { neon } from "@neondatabase/serverless";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
-import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
 import { eq, sql, count, desc, and, like, gte, not, lt, lte } from 'drizzle-orm';
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -21,6 +21,13 @@ import {
   isSameDayLockedAfterCutoffInIst,
   SAME_DAY_BOOKING_LOCK_MESSAGE,
 } from "../shared/booking-time-policy.js";
+import {
+  ensureMemberStatusSchema,
+  INACTIVE_MEMBER_BOOKING_MESSAGE,
+  isMemberActive,
+  normalizeMemberStatusFilter,
+  type MemberStatusFilter,
+} from "../server/member-status.js";
 
 // Database schema - inlined to avoid import issues
 const members = pgTable("members", {
@@ -28,6 +35,8 @@ const members = pgTable("members", {
   name: text("name").notNull(),
   initials: text("initials").notNull(),
   avatarColor: text("avatar_color").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  statusChangedAt: timestamp("status_changed_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -226,8 +235,23 @@ function parseUserAgent(userAgent: string): string {
 
 // Storage class
 class DatabaseStorage {
-  async getMembers() {
-    return await db.select().from(members).orderBy(members.name);
+  async getMembers(status: MemberStatusFilter = "all") {
+    const query = db.select().from(members);
+
+    if (status === "active") {
+      return await query.where(eq(members.isActive, true)).orderBy(members.name);
+    }
+
+    if (status === "inactive") {
+      return await query.where(eq(members.isActive, false)).orderBy(members.name);
+    }
+
+    return await query.orderBy(members.name);
+  }
+
+  async getMemberById(memberId: string) {
+    const [member] = await db.select().from(members).where(eq(members.id, memberId)).limit(1);
+    return member;
   }
 
   async createMember(member: any) {
@@ -346,6 +370,10 @@ class DatabaseStorage {
 }
 
 const storage = new DatabaseStorage();
+const startupPromise = ensureMemberStatusSchema({
+  db,
+  schemaName: getCurrentSchema(),
+});
 
 // Express app setup
 const app = express();
@@ -365,11 +393,21 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use((req, res, next) => {
+  startupPromise.then(() => next()).catch(next);
+});
 
 // Routes
 app.get("/api/members", async (req, res) => {
   try {
-    const memberList = await storage.getMembers();
+    const status = normalizeMemberStatusFilter(req.query.status);
+    if (!status) {
+      return res
+        .status(400)
+        .json({ error: "Invalid member status filter. Use active, inactive, or all." });
+    }
+
+    const memberList = await storage.getMembers(status);
     res.json(memberList);
   } catch (error) {
     console.error("Error fetching members:", error);
@@ -410,6 +448,14 @@ app.get("/api/bookings", async (req, res) => {
 app.post("/api/bookings", async (req, res) => {
   try {
     const bookingData = bookSlotSchema.parse(req.body);
+    const member = await storage.getMemberById(bookingData.memberId);
+    if (!member) {
+      return res.status(404).json({ error: "Member not found" });
+    }
+    if (!isMemberActive(member)) {
+      return res.status(403).json({ error: INACTIVE_MEMBER_BOOKING_MESSAGE });
+    }
+
     const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
     const validationError = await validateBookingRequestLocal({
       date: bookingData.date,
@@ -422,11 +468,12 @@ app.post("/api/bookings", async (req, res) => {
     
     const booking = await storage.createBooking({
       ...bookingData,
+      memberName: member.name,
     });
 
     await storage.createActivity({
       memberId: bookingData.memberId,
-      memberName: bookingData.memberName,
+      memberName: member.name,
       action: 'booked',
       date: bookingData.date,
       deviceInfo,

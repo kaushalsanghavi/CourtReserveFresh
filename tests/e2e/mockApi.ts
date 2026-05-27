@@ -4,12 +4,15 @@ import {
   isSameDayLockedAfterCutoffInIst,
   SAME_DAY_BOOKING_LOCK_MESSAGE,
 } from "../../shared/booking-time-policy";
+import { INACTIVE_MEMBER_BOOKING_MESSAGE } from "../../server/member-status";
 
 type Member = {
   id: string;
   name: string;
   initials: string;
   avatarColor: string;
+  isActive: boolean;
+  statusChangedAt: string;
   createdAt: string;
 };
 
@@ -44,19 +47,22 @@ type MockApiOptions = {
   nowIso: string;
   forceCutoffBookDates?: string[];
   forceDuplicateBookDates?: string[];
+  inactiveMemberIds?: string[];
 };
 
 const TEST_DEVICE = "Playwright (Chromium)";
 
-function createInitialMembers(): Member[] {
+function createInitialMembers(inactiveMemberIds: string[] = []): Member[] {
+  const isInactive = (memberId: string) => inactiveMemberIds.includes(memberId);
+
   return [
-    { id: "m1", name: "Kaushal", initials: "K", avatarColor: "green", createdAt: "2026-01-01T09:00:00.000Z" },
-    { id: "m2", name: "Main hoon na", initials: "MN", avatarColor: "blue", createdAt: "2026-01-01T09:01:00.000Z" },
-    { id: "m3", name: "RK", initials: "RK", avatarColor: "purple", createdAt: "2026-01-01T09:02:00.000Z" },
-    { id: "m4", name: "Anjali", initials: "A", avatarColor: "yellow", createdAt: "2026-01-01T09:03:00.000Z" },
-    { id: "m5", name: "He-man", initials: "HM", avatarColor: "pink", createdAt: "2026-01-01T09:04:00.000Z" },
-    { id: "m6", name: "Kumar", initials: "K", avatarColor: "indigo", createdAt: "2026-01-01T09:05:00.000Z" },
-    { id: "m7", name: "Ashish", initials: "A", avatarColor: "teal", createdAt: "2026-01-01T09:06:00.000Z" },
+    { id: "m1", name: "Kaushal", initials: "K", avatarColor: "green", isActive: !isInactive("m1"), statusChangedAt: "2026-01-01T09:00:00.000Z", createdAt: "2026-01-01T09:00:00.000Z" },
+    { id: "m2", name: "Main hoon na", initials: "MN", avatarColor: "blue", isActive: !isInactive("m2"), statusChangedAt: "2026-01-01T09:01:00.000Z", createdAt: "2026-01-01T09:01:00.000Z" },
+    { id: "m3", name: "RK", initials: "RK", avatarColor: "purple", isActive: !isInactive("m3"), statusChangedAt: "2026-01-01T09:02:00.000Z", createdAt: "2026-01-01T09:02:00.000Z" },
+    { id: "m4", name: "Anjali", initials: "A", avatarColor: "yellow", isActive: !isInactive("m4"), statusChangedAt: "2026-01-01T09:03:00.000Z", createdAt: "2026-01-01T09:03:00.000Z" },
+    { id: "m5", name: "He-man", initials: "HM", avatarColor: "pink", isActive: !isInactive("m5"), statusChangedAt: "2026-01-01T09:04:00.000Z", createdAt: "2026-01-01T09:04:00.000Z" },
+    { id: "m6", name: "Kumar", initials: "K", avatarColor: "indigo", isActive: !isInactive("m6"), statusChangedAt: "2026-01-01T09:05:00.000Z", createdAt: "2026-01-01T09:05:00.000Z" },
+    { id: "m7", name: "Ashish", initials: "A", avatarColor: "teal", isActive: !isInactive("m7"), statusChangedAt: "2026-01-01T09:06:00.000Z", createdAt: "2026-01-01T09:06:00.000Z" },
   ];
 }
 
@@ -127,7 +133,7 @@ export async function freezeTime(page: Page, nowIso: string) {
 }
 
 export async function installMockApi(page: Page, options: MockApiOptions) {
-  const members = createInitialMembers();
+  const members = createInitialMembers(options.inactiveMemberIds ?? []);
   const bookings = createInitialBookings();
   const activities = createInitialActivities();
   const comments = createInitialComments();
@@ -142,6 +148,13 @@ export async function installMockApi(page: Page, options: MockApiOptions) {
     const method = req.method();
 
     if (pathname === "/api/members" && method === "GET") {
+      const status = url.searchParams.get("status");
+      if (status === "active") {
+        return json(route, 200, members.filter((member) => member.isActive));
+      }
+      if (status === "inactive") {
+        return json(route, 200, members.filter((member) => !member.isActive));
+      }
       return json(route, 200, members);
     }
 
@@ -155,6 +168,14 @@ export async function installMockApi(page: Page, options: MockApiOptions) {
         memberName: string;
         date: string;
       };
+      const member = members.find((entry) => entry.id === payload.memberId);
+
+      if (!member) {
+        return json(route, 404, { message: "Member not found" });
+      }
+      if (!member.isActive) {
+        return json(route, 403, { message: INACTIVE_MEMBER_BOOKING_MESSAGE });
+      }
 
       if (
         options.forceCutoffBookDates?.includes(payload.date) ||

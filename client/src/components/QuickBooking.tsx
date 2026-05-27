@@ -4,6 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Member } from "@shared/schema";
 
+const ACTIVE_MEMBERS_QUERY = "/api/members?status=active";
+
+function clearLastSelectedMemberCookie() {
+  document.cookie = "lastSelectedMember=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+}
+
 interface SelectedMemberContextType {
   selectedMemberId: string;
   setSelectedMemberId: (memberId: string) => void;
@@ -24,7 +30,7 @@ export const SelectedMemberProvider = ({ children }: { children: React.ReactNode
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   
   const { data: members = [] } = useQuery<Member[]>({
-    queryKey: ["/api/members"],
+    queryKey: [ACTIVE_MEMBERS_QUERY],
   });
 
   // Load last selected member from cookie on component mount
@@ -35,13 +41,27 @@ export const SelectedMemberProvider = ({ children }: { children: React.ReactNode
       ?.split('=')[1];
     
     if (lastSelectedMember && members.length > 0) {
-      // Verify the member still exists in the current member list
-      const memberExists = members.find(m => m.id === lastSelectedMember);
-      if (memberExists) {
+      const activeMember = members.find((member) => member.id === lastSelectedMember);
+      if (activeMember) {
         setSelectedMemberId(lastSelectedMember);
+      } else {
+        setSelectedMemberId("");
+        clearLastSelectedMemberCookie();
       }
     }
   }, [members]);
+
+  useEffect(() => {
+    if (!selectedMemberId) {
+      return;
+    }
+
+    const activeMember = members.find((member) => member.id === selectedMemberId);
+    if (!activeMember) {
+      setSelectedMemberId("");
+      clearLastSelectedMemberCookie();
+    }
+  }, [members, selectedMemberId]);
 
   // Save selected member to cookie whenever it changes
   const handleSetSelectedMemberId = (memberId: string) => {
@@ -52,8 +72,7 @@ export const SelectedMemberProvider = ({ children }: { children: React.ReactNode
       expirationDate.setDate(expirationDate.getDate() + 30);
       document.cookie = `lastSelectedMember=${memberId}; expires=${expirationDate.toUTCString()}; path=/`;
     } else {
-      // Clear cookie if no member selected
-      document.cookie = 'lastSelectedMember=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+      clearLastSelectedMemberCookie();
     }
   };
 
@@ -71,7 +90,7 @@ function QuickBookingContent() {
   const { selectedMemberId, setSelectedMemberId } = useSelectedMember();
   
   const { data: members = [] } = useQuery<Member[]>({
-    queryKey: ["/api/members"],
+    queryKey: [ACTIVE_MEMBERS_QUERY],
   });
 
   return (

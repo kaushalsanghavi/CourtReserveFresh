@@ -18,6 +18,11 @@ import {
   handleAiChatRequest,
   subscribeToAiChatProgress,
 } from "./ai/sql-chat-service.js";
+import {
+  INACTIVE_MEMBER_BOOKING_MESSAGE,
+  isMemberActive,
+  normalizeMemberStatusFilter,
+} from "./member-status.js";
 
 function parseUserAgent(userAgent: string): string {
   if (!userAgent) return 'Unknown Device';
@@ -88,10 +93,19 @@ function parseUserAgent(userAgent: string): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  await storage.ensureInitialized();
+
   // Get all members
   app.get("/api/members", async (req, res) => {
     try {
-      const members = await storage.getMembers();
+      const status = normalizeMemberStatusFilter(req.query.status);
+      if (!status) {
+        return res
+          .status(400)
+          .json({ message: "Invalid member status filter. Use active, inactive, or all." });
+      }
+
+      const members = await storage.getMembers(status);
       res.json(members);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch members" });
@@ -124,6 +138,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = bookSlotSchema.parse(req.body);
       const { memberId, memberName, date } = validatedData;
+      const member = await storage.getMemberById(memberId);
+      if (!member) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+      if (!isMemberActive(member)) {
+        return res.status(403).json({ message: INACTIVE_MEMBER_BOOKING_MESSAGE });
+      }
+
       const validationError = await validateBookingRequest({
         date,
         memberId,
@@ -139,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the booking
       const booking = await storage.createBooking({
         memberId,
-        memberName,
+        memberName: member.name,
         date,
       });
 
@@ -147,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
       await storage.createActivity({
         memberId,
-        memberName,
+        memberName: member.name,
         action: "booked a slot for",
         date,
         deviceInfo,

@@ -9,8 +9,15 @@ import type {
   Activity, 
   InsertActivity,
   Comment,
-  InsertComment 
+  InsertComment,
+  MemberStatusEvent,
 } from "@shared/schema";
+import {
+  coerceDbBoolean,
+  ensureMemberStatusSchema,
+  escapeSqlString,
+  type MemberStatusFilter,
+} from "./member-status";
 
 function generateUuid(): string {
   const g: any = (globalThis as any);
@@ -27,8 +34,17 @@ function generateUuid(): string {
 
 export interface IStorage {
   // Members
-  getMembers(): Promise<Member[]>;
+  getMembers(status?: MemberStatusFilter): Promise<Member[]>;
+  getMemberById(memberId: string): Promise<Member | undefined>;
   createMember(member: InsertMember): Promise<Member>;
+  setMemberActiveStatus(params: {
+    memberId: string;
+    toIsActive: boolean;
+    changedBy: string;
+    reason?: string;
+    source: string;
+  }): Promise<{ member: Member; changed: boolean }>;
+  getMemberStatusHistory(memberId: string, limit?: number): Promise<MemberStatusEvent[]>;
   
   // Bookings
   getBookings(): Promise<Booking[]>;
@@ -50,6 +66,7 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   private initializationAttempted = false;
+  private memberStatusSchemaEnsured = false;
   constructor() {}
 
   /**
@@ -59,7 +76,32 @@ export class DatabaseStorage implements IStorage {
   async ensureInitialized(): Promise<void> {
     if (this.initializationAttempted) return;
     this.initializationAttempted = true;
+    await this.ensureMemberLifecycleSchema();
     await this.initializeData();
+  }
+
+  private async ensureMemberLifecycleSchema(): Promise<void> {
+    if (this.memberStatusSchemaEnsured) {
+      return;
+    }
+
+    await ensureMemberStatusSchema({
+      db,
+      schemaName: getCurrentSchema(),
+    });
+    this.memberStatusSchemaEnsured = true;
+  }
+
+  private mapMemberRow(row: any): Member {
+    return {
+      id: row.id as string,
+      name: row.name as string,
+      initials: row.initials as string,
+      avatarColor: row.avatar_color as string,
+      isActive: coerceDbBoolean(row.is_active),
+      statusChangedAt: new Date(row.status_changed_at as string),
+      createdAt: new Date(row.created_at as string),
+    };
   }
 
   private async initializeData() {
@@ -97,19 +139,13 @@ export class DatabaseStorage implements IStorage {
             const generatedId = generateUuid();
             const result = await db.execute(
               sql.raw(
-                `INSERT INTO public.members (id, name, initials, avatar_color, created_at)
-                 VALUES ('${generatedId}', '${escapedName}', '${escapedInitials}', '${escapedColor}', NOW())
-                 RETURNING id, name, initials, avatar_color, created_at`,
+                `INSERT INTO public.members (id, name, initials, avatar_color, is_active, status_changed_at, created_at)
+                 VALUES ('${generatedId}', '${escapedName}', '${escapedInitials}', '${escapedColor}', true, NOW(), NOW())
+                 RETURNING id, name, initials, avatar_color, is_active, status_changed_at, created_at`,
               ),
             );
             const row = result.rows[0];
-            createdMembers.push({
-              id: row.id as string,
-              name: row.name as string,
-              initials: row.initials as string,
-              avatarColor: row.avatar_color as string,
-              createdAt: new Date(row.created_at as string),
-            });
+            createdMembers.push(this.mapMemberRow(row));
           } else {
             // Non-public schemas (like development) can rely on drizzle insert
             const [newMember] = await db.insert(members).values(member).returning();
@@ -185,18 +221,24 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getMembers(): Promise<Member[]> {
+  async getMembers(status: MemberStatusFilter = "all"): Promise<Member[]> {
     try {
+      await this.ensureMemberLifecycleSchema();
+      const whereClause =
+        status === "active"
+          ? "WHERE is_active = true"
+          : status === "inactive"
+            ? "WHERE is_active = false"
+            : "";
       const result = await db.execute(
-        sql.raw(`SELECT id, name, initials, avatar_color, created_at FROM ${getCurrentSchema()}.members ORDER BY created_at`)
+        sql.raw(
+          `SELECT id, name, initials, avatar_color, is_active, status_changed_at, created_at
+           FROM ${getCurrentSchema()}.members
+           ${whereClause}
+           ORDER BY created_at`,
+        ),
       );
-      const members = result.rows.map((row: any) => ({
-        id: row.id as string,
-        name: row.name as string,
-        initials: row.initials as string,
-        avatarColor: row.avatar_color as string,
-        createdAt: new Date(row.created_at as string)
-      }));
+      const members = result.rows.map((row: any) => this.mapMemberRow(row));
       console.log('Members result:', { ok: true, value: members });
       return members;
     } catch (error) {
@@ -205,25 +247,146 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getMemberById(memberId: string): Promise<Member | undefined> {
+    try {
+      await this.ensureMemberLifecycleSchema();
+      const result = await db.execute(
+        sql.raw(
+          `SELECT id, name, initials, avatar_color, is_active, status_changed_at, created_at
+           FROM ${getCurrentSchema()}.members
+           WHERE id = '${escapeSqlString(memberId)}'
+           LIMIT 1`,
+        ),
+      );
+      const row = result.rows[0];
+      return row ? this.mapMemberRow(row) : undefined;
+    } catch (error) {
+      console.error("Error getting member by id:", error);
+      return undefined;
+    }
+  }
+
   async createMember(member: InsertMember): Promise<Member> {
     try {
+      await this.ensureMemberLifecycleSchema();
       const memberId = crypto.randomUUID();
+      const escapedName = escapeSqlString(member.name);
+      const escapedInitials = escapeSqlString(member.initials);
+      const escapedAvatarColor = escapeSqlString(member.avatarColor);
       const result = await db.execute(
-        sql.raw(`INSERT INTO ${getCurrentSchema()}.members (id, name, initials, avatar_color, created_at) 
-                 VALUES ('${memberId}', '${member.name}', '${member.initials}', '${member.avatarColor}', NOW()) 
-                 RETURNING id, name, initials, avatar_color, created_at`)
+        sql.raw(`INSERT INTO ${getCurrentSchema()}.members (id, name, initials, avatar_color, is_active, status_changed_at, created_at) 
+                 VALUES ('${memberId}', '${escapedName}', '${escapedInitials}', '${escapedAvatarColor}', true, NOW(), NOW()) 
+                 RETURNING id, name, initials, avatar_color, is_active, status_changed_at, created_at`)
       );
       const row: any = result.rows[0];
-      return {
-        id: row.id as string,
-        name: row.name as string,
-        initials: row.initials as string,
-        avatarColor: row.avatar_color as string,
-        createdAt: new Date(row.created_at as string)
-      };
+      return this.mapMemberRow(row);
     } catch (error) {
       console.error('Error creating member:', error);
       throw error;
+    }
+  }
+
+  async setMemberActiveStatus(params: {
+    memberId: string;
+    toIsActive: boolean;
+    changedBy: string;
+    reason?: string;
+    source: string;
+  }): Promise<{ member: Member; changed: boolean }> {
+    await this.ensureMemberLifecycleSchema();
+
+    const currentMember = await this.getMemberById(params.memberId);
+    if (!currentMember) {
+      throw new Error(`Member not found: ${params.memberId}`);
+    }
+
+    if (currentMember.isActive === params.toIsActive) {
+      return { member: currentMember, changed: false };
+    }
+
+    const eventId = generateUuid();
+    const escapedMemberId = escapeSqlString(params.memberId);
+    const escapedChangedBy = escapeSqlString(params.changedBy);
+    const escapedSource = escapeSqlString(params.source);
+    const escapedReason =
+      params.reason == null ? "NULL" : `'${escapeSqlString(params.reason)}'`;
+
+    const result = await db.execute(
+      sql.raw(
+        `WITH updated_member AS (
+          UPDATE ${getCurrentSchema()}.members
+          SET is_active = ${params.toIsActive}, status_changed_at = NOW()
+          WHERE id = '${escapedMemberId}'
+          RETURNING id, name, initials, avatar_color, is_active, status_changed_at, created_at
+        ),
+        inserted_event AS (
+          INSERT INTO ${getCurrentSchema()}.member_status_events (
+            id,
+            member_id,
+            from_is_active,
+            to_is_active,
+            changed_by,
+            reason,
+            source,
+            created_at
+          )
+          SELECT
+            '${eventId}',
+            id,
+            ${currentMember.isActive},
+            ${params.toIsActive},
+            '${escapedChangedBy}',
+            ${escapedReason},
+            '${escapedSource}',
+            NOW()
+          FROM updated_member
+        )
+        SELECT id, name, initials, avatar_color, is_active, status_changed_at, created_at
+        FROM updated_member`,
+      ),
+    );
+
+    const updatedRow = result.rows[0];
+    if (!updatedRow) {
+      throw new Error(`Failed to update member status for ${params.memberId}`);
+    }
+
+    return {
+      member: this.mapMemberRow(updatedRow),
+      changed: true,
+    };
+  }
+
+  async getMemberStatusHistory(
+    memberId: string,
+    limit = 20,
+  ): Promise<MemberStatusEvent[]> {
+    try {
+      await this.ensureMemberLifecycleSchema();
+      const sanitizedLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : 20;
+      const result = await db.execute(
+        sql.raw(
+          `SELECT id, member_id, from_is_active, to_is_active, changed_by, reason, source, created_at
+           FROM ${getCurrentSchema()}.member_status_events
+           WHERE member_id = '${escapeSqlString(memberId)}'
+           ORDER BY created_at DESC
+           LIMIT ${sanitizedLimit}`,
+        ),
+      );
+
+      return result.rows.map((row: any) => ({
+        id: row.id as string,
+        memberId: row.member_id as string,
+        fromIsActive: coerceDbBoolean(row.from_is_active),
+        toIsActive: coerceDbBoolean(row.to_is_active),
+        changedBy: row.changed_by as string,
+        reason: (row.reason as string | null) ?? null,
+        source: row.source as string,
+        createdAt: new Date(row.created_at as string),
+      }));
+    } catch (error) {
+      console.error("Error getting member status history:", error);
+      return [];
     }
   }
 
