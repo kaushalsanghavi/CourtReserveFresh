@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { triggerHaptic } from "@/lib/haptics";
 import { useSelectedMember } from "./QuickBooking";
 import CommentsAlternative from "./CommentsAlternative";
 import BookingHistory from "./BookingHistory";
@@ -29,15 +30,22 @@ interface DayCardProps {
   isBooking: boolean;
   isCancelling: boolean;
   isBookLocked: boolean;
+  recentlyBookedDate: string | null;
   selectedMemberId: string;
 }
 
-function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooking, isCancelling, isBookLocked, selectedMemberId }: DayCardProps) {
+function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooking, isCancelling, isBookLocked, recentlyBookedDate, selectedMemberId }: DayCardProps) {
   const dateStr = format(date, "yyyy-MM-dd");
   const dayBookings = bookings.filter(b => b.date === dateStr);
   const maxSlots = getMaxCapacityForDate(dateStr);
   const isToday = isSameDay(date, new Date());
   const isWeekendDay = isWeekend(date);
+  const [displaySlotCount, setDisplaySlotCount] = useState(dayBookings.length);
+  const [slotCountRoll, setSlotCountRoll] = useState<{ from: number; to: number } | null>(null);
+  const [showSuccessMotion, setShowSuccessMotion] = useState(false);
+  const previousSlotCountRef = useRef(dayBookings.length);
+  const countRollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const successMotionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Allow booking anytime, but only within a rolling 4-week window.
   const now = new Date();
@@ -49,6 +57,43 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
   // Check if selected member has a booking for this date
   const memberBooking = dayBookings.find(b => b.memberId === selectedMemberId);
   const hasSelectedMemberBooking = !!memberBooking;
+
+  useEffect(() => {
+    const previousSlotCount = previousSlotCountRef.current;
+    const nextSlotCount = dayBookings.length;
+    const shouldAnimateBooking =
+      recentlyBookedDate === dateStr &&
+      nextSlotCount > previousSlotCount &&
+      hasSelectedMemberBooking;
+
+    if (shouldAnimateBooking) {
+      if (countRollTimerRef.current) clearTimeout(countRollTimerRef.current);
+      if (successMotionTimerRef.current) clearTimeout(successMotionTimerRef.current);
+
+      setSlotCountRoll({ from: previousSlotCount, to: nextSlotCount });
+      setShowSuccessMotion(true);
+
+      countRollTimerRef.current = setTimeout(() => {
+        setSlotCountRoll(null);
+        setDisplaySlotCount(nextSlotCount);
+      }, 320);
+
+      successMotionTimerRef.current = setTimeout(() => {
+        setShowSuccessMotion(false);
+      }, 700);
+    } else {
+      setDisplaySlotCount(nextSlotCount);
+    }
+
+    previousSlotCountRef.current = nextSlotCount;
+  }, [dateStr, dayBookings.length, hasSelectedMemberBooking, recentlyBookedDate]);
+
+  useEffect(() => {
+    return () => {
+      if (countRollTimerRef.current) clearTimeout(countRollTimerRef.current);
+      if (successMotionTimerRef.current) clearTimeout(successMotionTimerRef.current);
+    };
+  }, []);
 
   if (isWeekendDay) return null;
 
@@ -90,12 +135,18 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
     return false;
   };
 
+  const isBookingPendingForCard = isBookLocked && !hasSelectedMemberBooking;
+  const shouldShowChipEntry =
+    showSuccessMotion &&
+    recentlyBookedDate === dateStr &&
+    !!selectedMemberId;
+
   return (
-    <div className={`border rounded-lg p-4 ${
+    <div className={`booking-day-card border rounded-lg p-4 ${
       isBookingDisabled 
         ? "border-gray-300 bg-gray-50" 
         : "border-gray-200 bg-white"
-    }`} data-testid={`day-card-${dateStr}`}>
+    } ${isBookLocked ? "is-pressing" : ""} ${showSuccessMotion ? "is-success" : ""}`} data-testid={`day-card-${dateStr}`}>
       <div className="flex items-center justify-between mb-3">
         <div>
           <h4 className={`font-medium ${
@@ -113,7 +164,18 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
           <span className={`text-sm font-medium ${
             isBookingDisabled ? "text-gray-500" : "text-gray-600"
           }`} data-testid={`slot-count-${dateStr}`}>
-            {dayBookings.length}/{maxSlots}
+            {slotCountRoll ? (
+              <>
+                <span className="slot-count-roller is-ticking" aria-hidden="true">
+                  <span className="slot-count-number current">{slotCountRoll.from}</span>
+                  <span className="slot-count-number incoming">{slotCountRoll.to}</span>
+                </span>
+                <span className="sr-only">{slotCountRoll.to}</span>
+              </>
+            ) : (
+              displaySlotCount
+            )}
+            /{maxSlots}
           </span>
           <div className={`w-2 h-2 rounded-full ml-2 ${
             isBookingDisabled ? "bg-gray-400" : "bg-green-500"
@@ -132,7 +194,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
                   booking.memberId === selectedMemberId 
                     ? "bg-green-100 text-green-700 font-medium" 
                     : "bg-gray-100 text-gray-700"
-                }`}
+                } ${shouldShowChipEntry && booking.memberId === selectedMemberId ? "booking-chip-enter" : ""}`}
               >
                 {booking.memberName}
               </span>
@@ -154,7 +216,16 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
         onClick={handleButtonClick}
         disabled={isButtonDisabled()}
         data-testid={`button-book-slot-${dateStr}`}>
-        {getButtonText()}
+        <span className="inline-flex items-center justify-center gap-2">
+          <span>{getButtonText()}</span>
+          {isBookingPendingForCard && (
+            <span className="booking-loading-dots" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          )}
+        </span>
       </Button>
       
       <div className="mt-3 flex gap-3">
@@ -184,6 +255,8 @@ export default function BookingCalendar() {
   const [dateOffset, setDateOffset] = useState(0);
   const bookingLockRef = useRef<Set<string>>(new Set());
   const [bookingLocks, setBookingLocks] = useState<Record<string, true>>({});
+  const [recentlyBookedDate, setRecentlyBookedDate] = useState<string | null>(null);
+  const recentlyBookedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: members = [] } = useQuery<Member[]>({ queryKey: ["/api/members"] });
   const { data: bookings = [] } = useQuery<Booking[]>({ queryKey: ["/api/bookings"] });
@@ -211,13 +284,18 @@ export default function BookingCalendar() {
       }
       return apiRequest("POST", "/api/bookings", { memberId: selectedMemberId, memberName: selectedMember.name, date });
     },
-    onSuccess: () => {
+    onSuccess: (_booking, date) => {
       toast({ title: "Booking successful", description: "Slot booked successfully" });
+      if (recentlyBookedTimerRef.current) clearTimeout(recentlyBookedTimerRef.current);
+      setRecentlyBookedDate(date);
+      recentlyBookedTimerRef.current = setTimeout(() => setRecentlyBookedDate(null), 1800);
+      triggerHaptic("success");
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     },
     onError: (error: Error, date: string) => {
       if (error.message.includes(SAME_DAY_BOOKING_LOCK_MESSAGE)) {
+        triggerHaptic("warning");
         toast({
           title: "Booking closed",
           description: "Changes for today are closed after 9:30 AM IST.",
@@ -225,6 +303,7 @@ export default function BookingCalendar() {
         return;
       }
       if (isAlreadyBookedConflict(error)) {
+        triggerHaptic("warning");
         toast({
           title: "Already booked",
           description: `You're all set for ${formatShortDate(date)}.`,
@@ -233,6 +312,7 @@ export default function BookingCalendar() {
         queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
         return;
       }
+      triggerHaptic("warning");
       toast({ title: "Booking failed", description: error.message, variant: "destructive" });
     },
   });
@@ -263,6 +343,12 @@ export default function BookingCalendar() {
       },
     });
   };
+
+  useEffect(() => {
+    return () => {
+      if (recentlyBookedTimerRef.current) clearTimeout(recentlyBookedTimerRef.current);
+    };
+  }, []);
 
   const cancelBookingMutation = useMutation({
     mutationFn: async ({ memberId, date }: { memberId: string; date: string }) => {
@@ -354,6 +440,7 @@ export default function BookingCalendar() {
                 isBooking={bookSlotMutation.isPending}
                 isCancelling={cancelBookingMutation.isPending}
                 isBookLocked={!!bookingLocks[`${selectedMemberId}:${format(date, "yyyy-MM-dd")}`]}
+                recentlyBookedDate={recentlyBookedDate}
                 selectedMemberId={selectedMemberId}
               />
             ))}

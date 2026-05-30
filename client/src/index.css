@@ -46,6 +46,120 @@
   background: #94a3b8;
 }
 
+.booking-day-card {
+  transition:
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.booking-day-card.is-pressing {
+  transform: scale(0.985);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.booking-day-card.is-success {
+  border-color: var(--ramp-green-200);
+  background: linear-gradient(180deg, white 0%, var(--ramp-green-50) 100%);
+}
+
+.slot-count-roller {
+  position: relative;
+  display: inline-block;
+  width: 0.7em;
+  height: 1.4em;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.slot-count-number {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 260ms ease;
+}
+
+.slot-count-number.incoming {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.slot-count-roller.is-ticking .slot-count-number.current {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+.slot-count-roller.is-ticking .slot-count-number.incoming {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.booking-chip-enter {
+  animation: booking-chip-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes booking-chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.booking-loading-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.booking-loading-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: booking-dot-pulse 780ms ease-in-out infinite;
+}
+
+.booking-loading-dots span:nth-child(2) {
+  animation-delay: 110ms;
+}
+
+.booking-loading-dots span:nth-child(3) {
+  animation-delay: 220ms;
+}
+
+@keyframes booking-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booking-day-card,
+  .slot-count-number {
+    transition-duration: 0.01ms;
+  }
+
+  .booking-chip-enter,
+  .booking-loading-dots span {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+}
+
 :root {
   --background: hsl(0 0% 100%);
   --foreground: hsl(220 9% 36%);
