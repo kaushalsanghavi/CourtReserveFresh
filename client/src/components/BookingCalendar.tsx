@@ -42,10 +42,12 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
   const isWeekendDay = isWeekend(date);
   const [displaySlotCount, setDisplaySlotCount] = useState(dayBookings.length);
   const [slotCountRoll, setSlotCountRoll] = useState<{ from: number; to: number } | null>(null);
+  const [isSlotCountTicking, setIsSlotCountTicking] = useState(false);
   const [showSuccessMotion, setShowSuccessMotion] = useState(false);
   const previousSlotCountRef = useRef(dayBookings.length);
   const countRollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const successMotionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countRollFrameRef = useRef<number | null>(null);
 
   // Allow booking anytime, but only within a rolling 4-week window.
   const now = new Date();
@@ -69,12 +71,20 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
     if (shouldAnimateBooking) {
       if (countRollTimerRef.current) clearTimeout(countRollTimerRef.current);
       if (successMotionTimerRef.current) clearTimeout(successMotionTimerRef.current);
+      if (countRollFrameRef.current) cancelAnimationFrame(countRollFrameRef.current);
 
       setSlotCountRoll({ from: previousSlotCount, to: nextSlotCount });
+      setIsSlotCountTicking(false);
       setShowSuccessMotion(true);
+
+      countRollFrameRef.current = requestAnimationFrame(() => {
+        setIsSlotCountTicking(true);
+        countRollFrameRef.current = null;
+      });
 
       countRollTimerRef.current = setTimeout(() => {
         setSlotCountRoll(null);
+        setIsSlotCountTicking(false);
         setDisplaySlotCount(nextSlotCount);
       }, 320);
 
@@ -82,6 +92,8 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
         setShowSuccessMotion(false);
       }, 700);
     } else {
+      setSlotCountRoll(null);
+      setIsSlotCountTicking(false);
       setDisplaySlotCount(nextSlotCount);
     }
 
@@ -92,6 +104,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
     return () => {
       if (countRollTimerRef.current) clearTimeout(countRollTimerRef.current);
       if (successMotionTimerRef.current) clearTimeout(successMotionTimerRef.current);
+      if (countRollFrameRef.current) cancelAnimationFrame(countRollFrameRef.current);
     };
   }, []);
 
@@ -166,7 +179,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
           }`} data-testid={`slot-count-${dateStr}`}>
             {slotCountRoll ? (
               <>
-                <span className="slot-count-roller is-ticking" aria-hidden="true">
+                <span className={`slot-count-roller ${isSlotCountTicking ? "is-ticking" : ""}`} aria-hidden="true">
                   <span className="slot-count-number current">{slotCountRoll.from}</span>
                   <span className="slot-count-number incoming">{slotCountRoll.to}</span>
                 </span>
