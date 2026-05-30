@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Header from "@/components/Header";
+import MobileBookingChrome from "@/components/MobileBookingChrome";
 import TabNavigation from "@/components/TabNavigation";
 import QuickBooking, { SelectedMemberProvider } from "@/components/QuickBooking";
 import BookingCalendar from "@/components/BookingCalendar";
@@ -13,12 +14,21 @@ export default function Home() {
   return (
     <SelectedMemberProvider>
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        <div className="hidden md:block">
+          <Header />
+        </div>
         
-        <main className="max-w-7xl mx-auto px-6 py-8">
-          <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+        <main className="max-w-7xl mx-auto px-4 py-4 md:px-6 md:py-8">
+          <MobileBookingChrome activeTab={activeTab} onTabChange={setActiveTab} />
+          <div className="hidden md:block">
+            <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+          </div>
           
-          {activeTab !== "ai-chat" && <QuickBooking />}
+          {activeTab !== "ai-chat" && (
+            <div className="hidden md:block">
+              <QuickBooking />
+            </div>
+          )}
           
           {activeTab === "recent-activity" && (
             <div data-testid="tab-recent-activity">
