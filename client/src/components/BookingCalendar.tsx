@@ -112,6 +112,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
 
   const handleButtonClick = () => {
     if (hasSelectedMemberBooking) {
+      triggerHaptic("warning");
       onCancelBooking(selectedMemberId, dateStr);
     } else {
       onBookSlot(dateStr);
@@ -149,6 +150,13 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
   };
 
   const isBookingPendingForCard = isBookLocked && !hasSelectedMemberBooking;
+  const shouldWarnOnUnavailableTap =
+    !!selectedMemberId &&
+    !hasSelectedMemberBooking &&
+    !isBooking &&
+    !isCancelling &&
+    !isBookLocked &&
+    (dayBookings.length >= maxSlots || isSameDayLocked);
   const shouldShowChipEntry =
     showSuccessMotion &&
     recentlyBookedDate === dateStr &&
@@ -218,28 +226,38 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
         )}
       </div>
       
-      <Button 
-        className={`w-full font-medium ${
-          isButtonDisabled() 
-            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-            : hasSelectedMemberBooking
-              ? "bg-red-100 text-red-700 hover:bg-red-200"
-              : "bg-green-100 text-green-700 hover:bg-green-200"
-        }`}
-        onClick={handleButtonClick}
-        disabled={isButtonDisabled()}
-        data-testid={`button-book-slot-${dateStr}`}>
-        <span className="inline-flex items-center justify-center gap-2">
-          <span>{getButtonText()}</span>
-          {isBookingPendingForCard && (
-            <span className="booking-loading-dots" aria-hidden="true">
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-          )}
-        </span>
-      </Button>
+      <div className="relative">
+        <Button 
+          className={`w-full font-medium ${
+            isButtonDisabled() 
+              ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+              : hasSelectedMemberBooking
+                ? "bg-red-100 text-red-700 hover:bg-red-200"
+                : "bg-green-100 text-green-700 hover:bg-green-200"
+          }`}
+          onClick={handleButtonClick}
+          disabled={isButtonDisabled()}
+          data-testid={`button-book-slot-${dateStr}`}>
+          <span className="inline-flex items-center justify-center gap-2">
+            <span>{getButtonText()}</span>
+            {isBookingPendingForCard && (
+              <span className="booking-loading-dots" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            )}
+          </span>
+        </Button>
+        {shouldWarnOnUnavailableTap && (
+          <button
+            type="button"
+            aria-label={isSameDayLocked ? "Booking closed" : "Fully booked"}
+            className="absolute inset-0 rounded-md"
+            onClick={() => triggerHaptic("warning")}
+          />
+        )}
+      </div>
       
       <div className="mt-3 flex gap-3">
         <CommentsAlternative date={dateStr} variant="sheet" />
@@ -368,18 +386,21 @@ export default function BookingCalendar() {
       return apiRequest("DELETE", `/api/bookings/${memberId}/${date}`, {});
     },
     onSuccess: () => {
+      triggerHaptic("success");
       toast({ title: "Booking cancelled", description: "Your booking has been cancelled" });
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     },
     onError: (error: Error) => {
       if (error.message.includes(SAME_DAY_BOOKING_LOCK_MESSAGE)) {
+        triggerHaptic("warning");
         toast({
           title: "Booking closed",
           description: "Changes for today are closed after 9:30 AM IST.",
         });
         return;
       }
+      triggerHaptic("warning");
       toast({ title: "Cancellation failed", description: error.message, variant: "destructive" });
     },
   });
@@ -418,7 +439,10 @@ export default function BookingCalendar() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => setDateOffset(dateOffset - 7)}
+            onClick={() => {
+              triggerHaptic("selection");
+              setDateOffset(dateOffset - 7);
+            }}
             disabled={isPrevDisabled}
             data-testid="prev-week-button"
           >
@@ -427,7 +451,10 @@ export default function BookingCalendar() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => setDateOffset(dateOffset + 7)}
+            onClick={() => {
+              triggerHaptic("selection");
+              setDateOffset(dateOffset + 7);
+            }}
             disabled={isNextDisabled}
             data-testid="next-week-button"
           >

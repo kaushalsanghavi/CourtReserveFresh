@@ -2,6 +2,7 @@
 import { useState, createContext, useContext, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { triggerHaptic } from "@/lib/haptics";
 import type { Member } from "@shared/schema";
 
 const ACTIVE_MEMBERS_QUERY = "/api/members?status=active";
@@ -93,6 +94,11 @@ function QuickBookingContent() {
     queryKey: [ACTIVE_MEMBERS_QUERY],
   });
 
+  const handleMemberChange = (memberId: string) => {
+    setSelectedMemberId(memberId);
+    triggerHaptic("selection");
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8" data-testid="quick-booking-card">
       <h2 className="text-lg font-medium text-gray-900 mb-2">Quick Booking</h2>
@@ -100,7 +106,7 @@ function QuickBookingContent() {
       
       <div className="flex items-center gap-4">
         <div className="flex-1">
-          <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+          <Select value={selectedMemberId} onValueChange={handleMemberChange}>
             <SelectTrigger data-testid="select-member">
               <SelectValue placeholder="Select member..." />
             </SelectTrigger>
