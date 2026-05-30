@@ -514,8 +514,8 @@ export default function BookingCalendar() {
             onClick={() => setShowPastDaysMobile((current) => !current)}
           >
             <div>
-              <p className="text-sm font-medium text-gray-900">Past dates ({pastVisibleCount})</p>
-              <p className="mt-1 text-xs text-gray-500">Still available for comments and history without blocking the current booking flow.</p>
+              <p className="text-sm font-medium text-gray-900">Earlier this week</p>
+              <p className="mt-1 text-xs text-gray-500">Still available for comments and history</p>
             </div>
             <ChevronRight
               className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${showPastDaysMobile ? "rotate-90" : ""}`}
