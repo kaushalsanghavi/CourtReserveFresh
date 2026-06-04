@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -439,36 +439,50 @@ export default function BookingCalendar() {
     .filter((week) => week.length > 0);
   const pastVisibleCount = pastWeeks.reduce((count, week) => count + week.length, 0);
   const isViewingPastOnlyWindow = weekDays.length > 0 && upcomingWeeks.length === 0;
+  const shouldShowEarlierThisWeek =
+    isMobile && dateOffset === 0 && !isViewingPastOnlyWindow && pastVisibleCount > 0;
+  const mobileWeeks = dateOffset < 0 || isViewingPastOnlyWindow ? weeks : upcomingWeeks;
+  const [currentVisibleWeek, ...remainingVisibleWeeks] = mobileWeeks;
 
   useEffect(() => {
     setShowPastDaysMobile(dateOffset < 0 || isViewingPastOnlyWindow);
   }, [dateOffset, isViewingPastOnlyWindow]);
 
-  const renderWeekSections = (weeksToRender: Date[][], keyPrefix: string) =>
-    weeksToRender.map((week, index) => (
-      <div key={`${keyPrefix}-${index}`} className={index < weeksToRender.length - 1 ? "mb-8" : ""}>
-        <h3 className="text-center text-sm font-medium text-gray-500 mb-6" data-testid={`${keyPrefix}-week-${index + 1}-label`}>
-          Week of {format(week[0], "MMM d")}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {week.map((date) => (
-            <DayCard
-              key={date.toISOString()}
-              date={date}
-              bookings={bookings}
-              members={members}
-              onBookSlot={handleBookSlot}
-              onCancelBooking={(memberId, bookingDate) => cancelBookingMutation.mutate({ memberId, date: bookingDate })}
-              isBooking={bookSlotMutation.isPending}
-              isCancelling={cancelBookingMutation.isPending}
-              isBookLocked={!!bookingLocks[`${selectedMemberId}:${format(date, "yyyy-MM-dd")}`]}
-              recentlyBookedDate={recentlyBookedDate}
-              selectedMemberId={selectedMemberId}
-            />
-          ))}
-        </div>
+  const renderWeekSection = (
+    week: Date[],
+    keyPrefix: string,
+    index: number,
+    options?: { extraContent?: React.ReactNode; isLast?: boolean },
+  ) => (
+    <div key={`${keyPrefix}-${index}`} className={options?.isLast ? "" : "mb-8"}>
+      <h3 className="text-center text-sm font-medium text-gray-500 mb-6" data-testid={`${keyPrefix}-week-${index + 1}-label`}>
+        Week of {format(week[0], "MMM d")}
+      </h3>
+      {options?.extraContent}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {week.map((date) => (
+          <DayCard
+            key={date.toISOString()}
+            date={date}
+            bookings={bookings}
+            members={members}
+            onBookSlot={handleBookSlot}
+            onCancelBooking={(memberId, bookingDate) => cancelBookingMutation.mutate({ memberId, date: bookingDate })}
+            isBooking={bookSlotMutation.isPending}
+            isCancelling={cancelBookingMutation.isPending}
+            isBookLocked={!!bookingLocks[`${selectedMemberId}:${format(date, "yyyy-MM-dd")}`]}
+            recentlyBookedDate={recentlyBookedDate}
+            selectedMemberId={selectedMemberId}
+          />
+        ))}
       </div>
-    ));
+    </div>
+  );
+
+  const renderWeekSections = (weeksToRender: Date[][], keyPrefix: string) =>
+    weeksToRender.map((week, index) =>
+      renderWeekSection(week, keyPrefix, index, { isLast: index === weeksToRender.length - 1 }),
+    );
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8" data-testid="booking-calendar">
@@ -505,27 +519,38 @@ export default function BookingCalendar() {
         </div>
       </div>
 
-      {isMobile && !isViewingPastOnlyWindow && pastVisibleCount > 0 && (
-        <div className="mb-6">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 text-left"
-            aria-expanded={showPastDaysMobile}
-            onClick={() => setShowPastDaysMobile((current) => !current)}
-          >
-            <div>
-              <p className="text-sm font-medium text-gray-900">Earlier this week</p>
-              <p className="mt-1 text-xs text-gray-500">Still available for comments and history</p>
-            </div>
-            <ChevronRight
-              className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${showPastDaysMobile ? "rotate-90" : ""}`}
-            />
-          </button>
-          {showPastDaysMobile && <div className="mt-4">{renderWeekSections(pastWeeks, "past")}</div>}
-        </div>
-      )}
+      {isMobile ? (
+        shouldShowEarlierThisWeek ? (
+          <>
+            {currentVisibleWeek ? renderWeekSection(currentVisibleWeek, "visible", 0, {
+              extraContent: (
+                <div className="mb-6">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 text-left"
+                    aria-expanded={showPastDaysMobile}
+                    onClick={() => setShowPastDaysMobile((current) => !current)}
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Earlier this week</p>
+                      <p className="mt-1 text-xs text-gray-500">Still available for comments and history</p>
+                    </div>
+                    <ChevronRight
+                      className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${showPastDaysMobile ? "rotate-90" : ""}`}
+                    />
+                  </button>
+                  {showPastDaysMobile && <div className="mt-4">{renderWeekSections(pastWeeks, "past")}</div>}
+                </div>
+              ),
+              isLast: remainingVisibleWeeks.length === 0,
+            }) : null}
 
-      {isMobile ? renderWeekSections(isViewingPastOnlyWindow ? weeks : upcomingWeeks, "visible") : renderWeekSections(weeks, "week")}
+            {remainingVisibleWeeks.length > 0 ? renderWeekSections(remainingVisibleWeeks, "visible-rest") : null}
+          </>
+        ) : (
+          renderWeekSections(mobileWeeks, "visible")
+        )
+      ) : renderWeekSections(weeks, "week")}
     </div>
   );
 }
