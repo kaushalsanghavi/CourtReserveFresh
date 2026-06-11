@@ -303,6 +303,47 @@ async function executeBookingTransaction(params: {
   }
 }
 
+// Cancels a booking and logs the activity in one atomic statement (single
+// round trip). The activity row takes member_name from the deleted booking,
+// so no member lookup is needed. Returns false when no booking matched.
+const CANCEL_BOOKING_SQL = `
+  WITH deleted AS (
+    DELETE FROM bookings
+    WHERE member_id = $1 AND date = $2
+    RETURNING member_id, member_name, date
+  )
+  INSERT INTO activities (id, member_id, member_name, action, date, device_info)
+  SELECT $3, d.member_id, d.member_name, 'cancelled a slot for', d.date, $4
+  FROM deleted d
+  RETURNING member_name AS "memberName"`;
+
+async function executeCancelTransaction(params: {
+  memberId: string;
+  date: string;
+  activityId: string;
+  deviceInfo: string;
+}): Promise<boolean> {
+  const { memberId, date, activityId, deviceInfo } = params;
+
+  if (neonClient) {
+    const rows: any = await neonClient(CANCEL_BOOKING_SQL, [
+      memberId,
+      date,
+      activityId,
+      deviceInfo,
+    ]);
+    return rows.length > 0;
+  }
+
+  const result = await pgPool!.query(CANCEL_BOOKING_SQL, [
+    memberId,
+    date,
+    activityId,
+    deviceInfo,
+  ]);
+  return result.rows.length > 0;
+}
+
 // Storage class
 class DatabaseStorage {
   async getMembers(status: MemberStatusFilter = "all") {
@@ -440,10 +481,17 @@ class DatabaseStorage {
 }
 
 const storage = new DatabaseStorage();
-const startupPromise = ensureMemberStatusSchema({
-  db,
-  schemaName: getCurrentSchema(),
-});
+
+// In production the member-status migrations are already applied (run
+// `npm run db:ensure-schema` out-of-band for a fresh database) — re-running
+// ~10 DDL statements on every cold start cost seconds per booking. Local
+// dev schemas are still ensured on startup so fresh checkouts keep working.
+const startupPromise = isProduction
+  ? Promise.resolve()
+  : ensureMemberStatusSchema({
+      db,
+      schemaName: getCurrentSchema(),
+    });
 
 // Express app setup
 const app = express();
@@ -577,26 +625,17 @@ app.delete("/api/bookings/:memberId/:date", async (req, res) => {
       return res.status(400).json({ message: SAME_DAY_BOOKING_LOCK_MESSAGE });
     }
     
-    const deleted = await storage.deleteBooking(memberId, date);
-    
+    const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+    const deleted = await executeCancelTransaction({
+      memberId,
+      date,
+      activityId: generateUuid(),
+      deviceInfo,
+    });
+
     if (!deleted) {
       return res.status(404).json({ message: "Booking not found" });
     }
-
-    // Find member name for activity log
-    const members = await storage.getMembers();
-    const member = members.find((m: any) => m.id === memberId);
-    const memberName = member?.name || "Unknown";
-
-    // Log the activity
-    const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
-    await storage.createActivity({
-      memberId,
-      memberName,
-      action: "cancelled a slot for",
-      date,
-      deviceInfo,
-    });
 
     res.json({ message: "Booking cancelled successfully" });
   } catch (error) {

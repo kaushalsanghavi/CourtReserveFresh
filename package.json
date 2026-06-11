@@ -16,6 +16,7 @@
     "test:e2e:smoke": "playwright test --config=playwright.config.ts --project=chromium",
     "setup:hooks": "node scripts/setup-git-hooks.mjs",
     "db:push": "drizzle-kit push",
+    "db:ensure-schema": "tsx scripts/ensure-schema.ts",
     "member:deactivate": "tsx scripts/member-status.ts deactivate",
     "member:reactivate": "tsx scripts/member-status.ts reactivate",
     "member:status-history": "tsx scripts/member-status.ts history",
