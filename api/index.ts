@@ -133,15 +133,17 @@ const schema = {
 const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
 let db: any;
+let neonClient: ReturnType<typeof neon> | null = null;
+let pgPool: Pool | null = null;
 
 if (isProduction) {
-  const connection = neon(process.env.DATABASE_URL!); // Use Neon for production
-  db = drizzleNeon(connection);
+  neonClient = neon(process.env.DATABASE_URL!); // Use Neon for production
+  db = drizzleNeon(neonClient);
 } else {
   const currentSchema = getCurrentSchema();
   const connectionString = `${process.env.DATABASE_URL}?options=-c%20search_path%3D${currentSchema}`;
-  const pool = new Pool({ connectionString });
-  db = drizzlePg(pool, { schema });
+  pgPool = new Pool({ connectionString });
+  db = drizzlePg(pgPool, { schema });
 }
 
 // Utility functions
@@ -231,6 +233,74 @@ function parseUserAgent(userAgent: string): string {
   }
   
   return `Unknown Device - ${browserName}`;
+}
+
+type BookedRow = {
+  id: string;
+  memberId: string;
+  memberName: string;
+  date: string;
+  createdAt: string | Date;
+};
+
+// Books a slot in a single transaction (one HTTP round trip on Neon).
+// pg_advisory_xact_lock serializes concurrent bookings for the same date so
+// the capacity count cannot race; the unique index on (member_id, date)
+// remains the final authority on duplicate bookings (raises 23505).
+// Returns null when no row was inserted (member missing/inactive, or date full).
+const BOOKING_INSERT_SQL = `
+  INSERT INTO bookings (id, member_id, member_name, date)
+  SELECT $1, m.id, m.name, $2
+  FROM members m
+  WHERE m.id = $3
+    AND m.is_active
+    AND (SELECT count(*) FROM bookings WHERE date = $2) < $4
+  RETURNING id, member_id AS "memberId", member_name AS "memberName", date, created_at AS "createdAt"`;
+
+const BOOKING_ACTIVITY_INSERT_SQL = `
+  INSERT INTO activities (id, member_id, member_name, action, date, device_info)
+  SELECT $1, b.member_id, b.member_name, 'booked', b.date, $2
+  FROM bookings b
+  WHERE b.id = $3`;
+
+async function executeBookingTransaction(params: {
+  bookingId: string;
+  activityId: string;
+  memberId: string;
+  date: string;
+  deviceInfo: string;
+  maxCapacity: number;
+}): Promise<BookedRow | null> {
+  const { bookingId, activityId, memberId, date, deviceInfo, maxCapacity } = params;
+
+  if (neonClient) {
+    const results: any = await neonClient.transaction((tx: any) => [
+      tx`SELECT pg_advisory_xact_lock(hashtext(${date}))`,
+      tx(BOOKING_INSERT_SQL, [bookingId, date, memberId, maxCapacity]),
+      tx(BOOKING_ACTIVITY_INSERT_SQL, [activityId, deviceInfo, bookingId]),
+    ]);
+    return (results[1]?.[0] as BookedRow) ?? null;
+  }
+
+  const client = await pgPool!.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [date]);
+    const inserted = await client.query(BOOKING_INSERT_SQL, [
+      bookingId,
+      date,
+      memberId,
+      maxCapacity,
+    ]);
+    await client.query(BOOKING_ACTIVITY_INSERT_SQL, [activityId, deviceInfo, bookingId]);
+    await client.query("COMMIT");
+    return (inserted.rows[0] as BookedRow) ?? null;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 // Storage class
@@ -448,6 +518,27 @@ app.get("/api/bookings", async (req, res) => {
 app.post("/api/bookings", async (req, res) => {
   try {
     const bookingData = bookSlotSchema.parse(req.body);
+
+    if (isSameDayLockedAfterCutoffInIst(bookingData.date)) {
+      return res.status(400).json({ error: SAME_DAY_BOOKING_LOCK_MESSAGE });
+    }
+
+    const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+    const booking = await executeBookingTransaction({
+      bookingId: generateUuid(),
+      activityId: generateUuid(),
+      memberId: bookingData.memberId,
+      date: bookingData.date,
+      deviceInfo,
+      maxCapacity: getMaxCapacityForDate(bookingData.date),
+    });
+
+    if (booking) {
+      return res.json(booking);
+    }
+
+    // The conditional insert matched no row. Re-read state on this rare path
+    // so the client gets the same error messages as before.
     const member = await storage.getMemberById(bookingData.memberId);
     if (!member) {
       return res.status(404).json({ error: "Member not found" });
@@ -456,7 +547,6 @@ app.post("/api/bookings", async (req, res) => {
       return res.status(403).json({ error: INACTIVE_MEMBER_BOOKING_MESSAGE });
     }
 
-    const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
     const validationError = await validateBookingRequestLocal({
       date: bookingData.date,
       memberId: bookingData.memberId,
@@ -465,21 +555,8 @@ app.post("/api/bookings", async (req, res) => {
     if (validationError) {
       return res.status(validationError.status).json({ error: validationError.message });
     }
-    
-    const booking = await storage.createBooking({
-      ...bookingData,
-      memberName: member.name,
-    });
 
-    await storage.createActivity({
-      memberId: bookingData.memberId,
-      memberName: member.name,
-      action: 'booked',
-      date: bookingData.date,
-      deviceInfo,
-    });
-
-    res.json(booking);
+    return res.status(409).json({ error: "Could not complete the booking. Please try again." });
   } catch (error) {
     if (isDuplicateBookingError(error)) {
       res.status(409).json({ error: DUPLICATE_BOOKING_MESSAGE });
