@@ -6,6 +6,9 @@ const TARGETS = [
   path.join(ROOT, "api"),
   path.join(ROOT, "server", "ai"),
   path.join(ROOT, "server", "db.ts"),
+  path.join(ROOT, "server", "fine-repository.ts"),
+  path.join(ROOT, "server", "fine-routes.ts"),
+  path.join(ROOT, "server", "fine-schema.ts"),
   path.join(ROOT, "server", "routes.ts"),
 ];
 

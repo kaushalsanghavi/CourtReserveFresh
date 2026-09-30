@@ -6,14 +6,14 @@ import {
   recordFinePaymentSchema,
   removeFineSchema,
   reportFineSchema,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import {
   FINE_REPORTING_WINDOW_MESSAGE,
   getFineAmount,
   getFineReportingWindow,
-} from "@shared/fine-policy";
-import { parseDeviceInfo } from "@shared/device-info";
-import { FineRepository, isFineDuplicateError } from "./fine-repository";
+} from "../shared/fine-policy.js";
+import { parseDeviceInfo } from "../shared/device-info.js";
+import { FineRepository, isFineDuplicateError } from "./fine-repository.js";
 
 function requestError(res: any, error: unknown, fallback: string) {
   if (error instanceof z.ZodError) {

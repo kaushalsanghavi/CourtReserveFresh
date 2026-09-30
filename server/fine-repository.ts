@@ -1,6 +1,6 @@
 import { sql, type SQLWrapper } from "drizzle-orm";
-import type { Fine, FineEvent, FineReason } from "@shared/schema";
-import { escapeSqlString } from "./member-status";
+import type { Fine, FineEvent, FineReason } from "../shared/schema.js";
+import { escapeSqlString } from "./member-status.js";
 
 type QueryResult = { rows?: Array<Record<string, unknown>> };
 type SqlExecutor = { execute: (query: string | SQLWrapper) => Promise<unknown> | unknown };
