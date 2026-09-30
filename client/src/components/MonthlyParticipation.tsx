@@ -48,7 +48,7 @@ export default function MonthlyParticipation() {
     const weekdaysInMonth = daysInMonth.filter(day => !isWeekend(day));
     const totalWeekdays = weekdaysInMonth.length;
     
-    const stats = members.map(member => {
+    const stats = members.flatMap(member => {
       const memberBookings = allBookings.filter(booking => {
         const bookingDate = new Date(booking.date);
         return booking.memberId === member.id && 
@@ -57,15 +57,20 @@ export default function MonthlyParticipation() {
       });
 
       const totalBookings = memberBookings.length;
+
+      if (!member.isActive && totalBookings === 0) {
+        return [];
+      }
+
       const participationRate = totalWeekdays > 0 ? Math.round((totalBookings / totalWeekdays) * 100) : 0;
       const status = participationRate >= 50 ? "High" : participationRate >= 25 ? "Medium" : "Low";
 
-      return {
+      return [{
         member,
         totalBookings,
         participationRate,
         status,
-      };
+      }];
     });
 
     // Sort the stats based on current sort criteria

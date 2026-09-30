@@ -262,3 +262,16 @@ test("monthly participation math and sorting remain deterministic", async ({ pag
   await page.getByTestId("sort-bookings").click();
   await expect(firstName).toContainText("Main hoon na");
 });
+
+test("monthly participation hides inactive members only when they have no monthly bookings", async ({ page }) => {
+  await loadWithMocks(page, {
+    nowIso: AFTER_CUTOFF_NOW,
+    inactiveMemberIds: ["m1", "m7"],
+  });
+
+  await page.getByTestId("tab-monthly-participation-button").click();
+
+  await expect(page.getByTestId("member-row-m1")).toBeVisible();
+  await expect(page.getByTestId("total-bookings-m1")).toContainText("1");
+  await expect(page.getByTestId("member-row-m7")).toHaveCount(0);
+});
