@@ -19,7 +19,7 @@ function requestError(res: any, error: unknown, fallback: string) {
     return res.status(400).json({ message: "Invalid request data", errors: error.errors });
   }
   if (isFineDuplicateError(error)) {
-    return res.status(409).json({ message: "This member already has a fine for today." });
+    return res.status(409).json({ message: "This member already has a fine for that day." });
   }
   console.error(fallback, error);
   return res.status(500).json({ message: fallback });
@@ -56,9 +56,14 @@ export function registerFineRoutes(app: Express, repository: FineRepository) {
   app.post("/api/fines", async (req, res) => {
     try {
       const input = reportFineSchema.parse(req.body);
+      const today = getFineIncidentDate();
+      const incidentDate = input.incidentDate ?? today;
+      if (incidentDate > today) {
+        return res.status(400).json({ message: "Fine date cannot be in the future." });
+      }
       const fine = await repository.report({
         ...input,
-        incidentDate: getFineIncidentDate(),
+        incidentDate,
         amount: getFineAmount(input.reason),
         deviceInfo: parseDeviceInfo(req.headers["user-agent"] || ""),
       });

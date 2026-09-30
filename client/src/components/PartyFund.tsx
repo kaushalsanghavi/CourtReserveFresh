@@ -20,10 +20,12 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useSelectedMember } from "@/components/QuickBooking";
 import { DeviceInfo } from "@/components/ActivityMetadata";
+import { getFineIncidentDate } from "@shared/fine-policy";
 
 type FineFilter = "all" | "due" | "paid";
 type FundView = "fines" | "history";
@@ -42,6 +44,8 @@ const fineLabels: Record<FineReason, string> = {
   late: "Came late",
   "no-show": "No-show",
 };
+
+const fineDateFormat = "EEE, d MMM";
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -62,6 +66,7 @@ export default function PartyFund() {
   const { data: fetchedMembers = [] } = useQuery<Member[]>({ queryKey: ["/api/members?status=active"] });
   const members = fetchedMembers;
   const now = new Date();
+  const todayFineDate = getFineIncidentDate(now);
   const [selectedMonth, setSelectedMonth] = useState(format(now, "yyyy-MM"));
   const [filter, setFilter] = useState<FineFilter>("all");
   const [fundView, setFundView] = useState<FundView>("fines");
@@ -69,6 +74,7 @@ export default function PartyFund() {
   const [fineToRemove, setFineToRemove] = useState<Fine | null>(null);
   const [removalReason, setRemovalReason] = useState("");
   const [memberId, setMemberId] = useState("");
+  const [incidentDate, setIncidentDate] = useState(todayFineDate);
   const [reason, setReason] = useState<FineReason>("late");
   const [note, setNote] = useState("");
 
@@ -99,6 +105,7 @@ export default function PartyFund() {
 
   const resetForm = () => {
     setMemberId("");
+    setIncidentDate(getFineIncidentDate());
     setReason("late");
     setNote("");
   };
@@ -114,7 +121,7 @@ export default function PartyFund() {
   };
 
   const reportMutation = useMutation({
-    mutationFn: (input: { memberId: string; actorMemberId: string; reason: FineReason; note?: string }) =>
+    mutationFn: (input: { memberId: string; actorMemberId: string; incidentDate: string; reason: FineReason; note?: string }) =>
       fetchJson<Fine>("/api/fines", { method: "POST", body: JSON.stringify(input) }),
     onSuccess: async (fine) => {
       setSelectedMonth(fine.incidentDate.slice(0, 7));
@@ -151,8 +158,8 @@ export default function PartyFund() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    if (!memberId || !selectedMemberId) return;
-    reportMutation.mutate({ memberId, actorMemberId: selectedMemberId, reason, note: note.trim() || undefined });
+    if (!memberId || !selectedMemberId || !incidentDate || incidentDate > todayFineDate) return;
+    reportMutation.mutate({ memberId, actorMemberId: selectedMemberId, incidentDate, reason, note: note.trim() || undefined });
   };
 
   const markPaid = (fine: Fine) => {
@@ -182,7 +189,7 @@ export default function PartyFund() {
             </p>
           </div>
           <div>
-            <Button className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" onClick={() => setDialogOpen(true)} data-testid="report-fine-button">
+            <Button className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" onClick={() => { resetForm(); setDialogOpen(true); }} data-testid="report-fine-button">
               <PlusIcon weight="bold" aria-hidden="true" />
               Report a fine
             </Button>
@@ -254,7 +261,7 @@ export default function PartyFund() {
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-gray-900">{fine.memberName}</p>
-                          <p className="text-xs text-gray-500">{format(parseISO(fine.incidentDate), "d MMM")}</p>
+                          <p className="text-xs text-gray-500">{format(parseISO(fine.incidentDate), fineDateFormat)}</p>
                         </div>
                       </div>
                       <div className="flex items-center justify-between md:block">
@@ -314,7 +321,7 @@ export default function PartyFund() {
                     </p>
                     <time className="shrink-0 text-xs text-gray-400">{format(new Date(event.createdAt), "d MMM, h:mm a")}</time>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">{fineLabels[event.reason]} on {format(parseISO(event.incidentDate), "d MMM")}{event.note ? ` · ${event.note}` : ""}</p>
+                  <p className="mt-1 text-xs text-gray-500">{fineLabels[event.reason]} on {format(parseISO(event.incidentDate), fineDateFormat)}{event.note ? ` · ${event.note}` : ""}</p>
                   <DeviceInfo className="mt-1 text-xs text-gray-400" deviceInfo={event.deviceInfo} />
                 </div>
               </div>
@@ -351,6 +358,17 @@ export default function PartyFund() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="fine-date">Fine date</Label>
+              <Input
+                id="fine-date"
+                type="date"
+                value={incidentDate}
+                max={todayFineDate}
+                onChange={(event) => setIncidentDate(event.target.value)}
+                data-testid="fine-date-input"
+              />
+            </div>
+            <div className="space-y-2">
                 <Label htmlFor="reported-by">Reported by</Label>
                 <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
                   <SelectTrigger id="reported-by" data-testid="reported-by-select"><SelectValue placeholder="Choose" /></SelectTrigger>
@@ -361,7 +379,7 @@ export default function PartyFund() {
             <div className="flex items-center justify-between rounded-md bg-gray-50 px-3 py-2 text-sm"><span className="text-gray-600">Fine amount</span><span className="font-semibold text-gray-900">₹{reason === "late" ? 50 : 100}</span></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={!memberId || !selectedMemberId || reportMutation.isPending}>{reportMutation.isPending ? "Adding..." : "Add to party fund"}</Button>
+              <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={!memberId || !selectedMemberId || !incidentDate || incidentDate > todayFineDate || reportMutation.isPending}>{reportMutation.isPending ? "Adding..." : "Add to party fund"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -202,6 +202,7 @@ export const fineDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const reportFineSchema = z.object({
   memberId: z.string().min(1),
   actorMemberId: z.string().min(1),
+  incidentDate: fineDateSchema.optional(),
   reason: fineReasonSchema,
   note: z.string().trim().max(120).optional(),
 });

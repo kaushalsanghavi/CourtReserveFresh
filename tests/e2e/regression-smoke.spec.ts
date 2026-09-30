@@ -83,6 +83,8 @@ test("fine actors share booking identity while the fined member stays separate",
   const reportDialog = page.getByRole("dialog");
 
   await expect(reportDialog.getByTestId("reported-by-select")).toContainText("Kaushal");
+  await expect(reportDialog.getByTestId("fine-date-input")).toHaveValue("2030-03-04");
+  await expect(reportDialog.getByTestId("fine-date-input")).toHaveAttribute("max", "2030-03-04");
   await reportDialog.getByTestId("fined-member-select").click();
   await page.getByRole("option", { name: "Anjali", exact: true }).click();
   await expect
@@ -102,6 +104,7 @@ test("fine actors share booking identity while the fined member stays separate",
   await page.reload();
   await page.getByTestId("tab-party-fund-button").click();
   await expect(page.getByTestId("fine-row-fine-100")).toContainText("Anjali");
+  await expect(page.getByTestId("fine-row-fine-100")).toContainText("Mon, 4 Mar");
   await page.getByRole("button", { name: "Mark paid" }).click();
   await expect(page.getByText("Contributed")).toBeVisible();
   await page.getByRole("button", { name: "Remove fine for Anjali" }).click();
@@ -132,8 +135,10 @@ test("fine reporting remains available at any time", async ({ page }) => {
   const reportDialog = page.getByRole("dialog");
   await reportDialog.getByTestId("fined-member-select").click();
   await page.getByRole("option", { name: "Anjali", exact: true }).click();
+  await reportDialog.getByTestId("fine-date-input").fill("2030-03-03");
   await reportDialog.getByRole("button", { name: "Add to party fund" }).click();
   await expect(page.getByTestId("fine-row-fine-100")).toContainText("Anjali");
+  await expect(page.getByTestId("fine-row-fine-100")).toContainText("Sun, 3 Mar");
 });
 
 test("inactive members are hidden from quick booking and stale cookies are cleared", async ({ page }) => {

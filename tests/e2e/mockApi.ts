@@ -223,20 +223,25 @@ export async function installMockApi(page: Page, options: MockApiOptions) {
     }
 
     if (pathname === "/api/fines" && method === "POST") {
-      const incidentDate = getFineIncidentDate(now);
       const payload = req.postDataJSON() as {
         memberId: string;
         actorMemberId: string;
+        incidentDate?: string;
         reason: "late" | "no-show";
         note?: string;
       };
+      const today = getFineIncidentDate(now);
+      const incidentDate = payload.incidentDate || today;
+      if (incidentDate > today) {
+        return json(route, 400, { message: "Fine date cannot be in the future." });
+      }
       const subject = members.find((member) => member.id === payload.memberId && member.isActive);
       const actor = members.find((member) => member.id === payload.actorMemberId && member.isActive);
       if (!subject || !actor) {
         return json(route, 403, { message: "The reporting and fined members must both be active." });
       }
       if (fines.some((fine) => fine.memberId === subject.id && fine.incidentDate === incidentDate && fine.status !== "removed")) {
-        return json(route, 409, { message: "This member already has a fine for today." });
+        return json(route, 409, { message: "This member already has a fine for that day." });
       }
       const createdAt = new Date(now.getTime() + idCounter * 1000).toISOString();
       const fine: Fine = {
