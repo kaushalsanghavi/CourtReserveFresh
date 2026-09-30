@@ -5,6 +5,11 @@ import {
   SAME_DAY_BOOKING_LOCK_MESSAGE,
 } from "../../shared/booking-time-policy";
 import { INACTIVE_MEMBER_BOOKING_MESSAGE } from "../../server/member-status";
+import {
+  FINE_REPORTING_WINDOW_MESSAGE,
+  getFineAmount,
+  getFineReportingWindow,
+} from "../../shared/fine-policy";
 
 type Member = {
   id: string;
@@ -40,6 +45,45 @@ type Comment = {
   memberName: string;
   date: string;
   comment: string;
+  createdAt: string;
+};
+
+type Fine = {
+  id: string;
+  memberId: string;
+  memberName: string;
+  incidentDate: string;
+  reason: "late" | "no-show";
+  amount: number;
+  status: "due" | "paid" | "removed";
+  reportedByMemberId: string;
+  reporterName: string;
+  reportNote: string | null;
+  reportedAt: string;
+  paidByMemberId: string | null;
+  paidByName: string | null;
+  paidAt: string | null;
+  removedByMemberId: string | null;
+  removedByName: string | null;
+  removalReason: string | null;
+  removedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type FineEvent = {
+  id: string;
+  fineId: string;
+  incidentDate: string;
+  action: "reported" | "paid" | "removed";
+  actorMemberId: string;
+  actorName: string;
+  subjectMemberId: string;
+  subjectMemberName: string;
+  reason: "late" | "no-show";
+  amount: number;
+  note: string | null;
+  deviceInfo: string;
   createdAt: string;
 };
 
@@ -137,6 +181,8 @@ export async function installMockApi(page: Page, options: MockApiOptions) {
   const bookings = createInitialBookings();
   const activities = createInitialActivities();
   const comments = createInitialComments();
+  const fines: Fine[] = [];
+  const fineEvents: FineEvent[] = [];
 
   let idCounter = 100;
   const now = new Date(options.nowIso);
@@ -160,6 +206,122 @@ export async function installMockApi(page: Page, options: MockApiOptions) {
 
     if (pathname === "/api/bookings" && method === "GET") {
       return json(route, 200, [...bookings].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    }
+
+    if (pathname === "/api/fines/reporting-window" && method === "GET") {
+      return json(route, 200, getFineReportingWindow(now));
+    }
+
+    if (pathname === "/api/fines" && method === "GET") {
+      const month = url.searchParams.get("month");
+      return json(route, 200, fines.filter((fine) => fine.status !== "removed" && fine.incidentDate.startsWith(month || "")));
+    }
+
+    if (pathname === "/api/fines/history" && method === "GET") {
+      const month = url.searchParams.get("month");
+      return json(route, 200, fineEvents.filter((event) => event.incidentDate.startsWith(month || "")));
+    }
+
+    const fineHistoryDateMatch = pathname.match(/^\/api\/fines\/history\/(\d{4}-\d{2}-\d{2})$/);
+    if (fineHistoryDateMatch && method === "GET") {
+      return json(route, 200, fineEvents.filter((event) => event.incidentDate === fineHistoryDateMatch[1]));
+    }
+
+    if (pathname === "/api/fines" && method === "POST") {
+      const window = getFineReportingWindow(now);
+      if (!window.isOpen) {
+        return json(route, 403, { message: FINE_REPORTING_WINDOW_MESSAGE, reportingWindow: window });
+      }
+      const payload = req.postDataJSON() as {
+        memberId: string;
+        actorMemberId: string;
+        reason: "late" | "no-show";
+        note?: string;
+      };
+      const subject = members.find((member) => member.id === payload.memberId && member.isActive);
+      const actor = members.find((member) => member.id === payload.actorMemberId && member.isActive);
+      if (!subject || !actor) {
+        return json(route, 403, { message: "The reporting and fined members must both be active." });
+      }
+      if (fines.some((fine) => fine.memberId === subject.id && fine.incidentDate === window.date && fine.status !== "removed")) {
+        return json(route, 409, { message: "This member already has a fine for today." });
+      }
+      const createdAt = new Date(now.getTime() + idCounter * 1000).toISOString();
+      const fine: Fine = {
+        id: `fine-${idCounter}`,
+        memberId: subject.id,
+        memberName: subject.name,
+        incidentDate: window.date,
+        reason: payload.reason,
+        amount: getFineAmount(payload.reason),
+        status: "due",
+        reportedByMemberId: actor.id,
+        reporterName: actor.name,
+        reportNote: payload.note || null,
+        reportedAt: createdAt,
+        paidByMemberId: null,
+        paidByName: null,
+        paidAt: null,
+        removedByMemberId: null,
+        removedByName: null,
+        removalReason: null,
+        removedAt: null,
+        createdAt,
+        updatedAt: createdAt,
+      };
+      fines.unshift(fine);
+      fineEvents.unshift({
+        id: `fine-event-${idCounter}`,
+        fineId: fine.id,
+        incidentDate: fine.incidentDate,
+        action: "reported",
+        actorMemberId: actor.id,
+        actorName: actor.name,
+        subjectMemberId: subject.id,
+        subjectMemberName: subject.name,
+        reason: fine.reason,
+        amount: fine.amount,
+        note: fine.reportNote,
+        deviceInfo: TEST_DEVICE,
+        createdAt,
+      });
+      idCounter += 1;
+      return json(route, 201, fine);
+    }
+
+    const finePaymentMatch = pathname.match(/^\/api\/fines\/([^/]+)\/pay$/);
+    if (finePaymentMatch && method === "POST") {
+      const payload = req.postDataJSON() as { actorMemberId: string };
+      const actor = members.find((member) => member.id === payload.actorMemberId && member.isActive);
+      const fine = fines.find((entry) => entry.id === finePaymentMatch[1] && entry.status === "due");
+      if (!actor || !fine) return json(route, 409, { message: "Fine cannot be paid." });
+      const createdAt = new Date(now.getTime() + idCounter * 1000).toISOString();
+      fine.status = "paid";
+      fine.paidByMemberId = actor.id;
+      fine.paidByName = actor.name;
+      fine.paidAt = createdAt;
+      fine.updatedAt = createdAt;
+      fineEvents.unshift({ id: `fine-event-${idCounter}`, fineId: fine.id, incidentDate: fine.incidentDate, action: "paid", actorMemberId: actor.id, actorName: actor.name, subjectMemberId: fine.memberId, subjectMemberName: fine.memberName, reason: fine.reason, amount: fine.amount, note: null, deviceInfo: TEST_DEVICE, createdAt });
+      idCounter += 1;
+      return json(route, 200, fine);
+    }
+
+    const fineRemovalMatch = pathname.match(/^\/api\/fines\/([^/]+)\/remove$/);
+    if (fineRemovalMatch && method === "POST") {
+      const payload = req.postDataJSON() as { actorMemberId: string; reason: string };
+      const actor = members.find((member) => member.id === payload.actorMemberId && member.isActive);
+      const fine = fines.find((entry) => entry.id === fineRemovalMatch[1] && entry.status !== "removed");
+      if (!actor || !fine) return json(route, 409, { message: "Fine cannot be removed." });
+      const createdAt = new Date(now.getTime() + idCounter * 1000).toISOString();
+      fine.status = "removed";
+      fine.removedByMemberId = actor.id;
+      fine.removedByName = actor.name;
+      fine.removalReason = payload.reason;
+      fine.removedAt = createdAt;
+      fine.updatedAt = createdAt;
+      fineEvents.unshift({ id: `fine-event-${idCounter}`, fineId: fine.id, incidentDate: fine.incidentDate, action: "removed", actorMemberId: actor.id, actorName: actor.name, subjectMemberId: fine.memberId, subjectMemberName: fine.memberName, reason: fine.reason, amount: fine.amount, note: payload.reason, deviceInfo: TEST_DEVICE, createdAt });
+      idCounter += 1;
+      return json(route, 200, fine);
     }
 
     if (pathname === "/api/bookings" && method === "POST") {

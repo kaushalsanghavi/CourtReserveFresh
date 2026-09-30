@@ -28,6 +28,10 @@ import {
   normalizeMemberStatusFilter,
   type MemberStatusFilter,
 } from "../server/member-status.js";
+import { parseDeviceInfo } from "../shared/device-info.js";
+import { ensureFineSchema } from "../server/fine-schema.js";
+import { FineRepository } from "../server/fine-repository.js";
+import { registerFineRoutes } from "../server/fine-routes.js";
 
 // Database schema - inlined to avoid import issues
 const members = pgTable("members", {
@@ -174,65 +178,6 @@ function getCurrentSchema(): string {
 
   // On Vercel/Neon use 'public' as the default schema
   return prod ? 'public' : 'development';
-}
-
-function parseUserAgent(userAgent: string): string {
-  if (!userAgent) return 'Unknown Device';
-
-  const isAndroid = userAgent.includes('Android');
-  const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad');
-  const isWindows = userAgent.includes('Windows');
-  const isMac = userAgent.includes('Macintosh');
-  const isLinux = userAgent.includes('Linux') && !isAndroid;
-
-  const isChrome = userAgent.includes('Chrome') && !userAgent.includes('Edg');
-  const isFirefox = userAgent.includes('Firefox');
-  const isSafari = userAgent.includes('Safari') && !userAgent.includes('Chrome');
-  const isEdge = userAgent.includes('Edg');
-
-  let browserName = 'Unknown Browser';
-  if (isChrome) browserName = 'Chrome';
-  else if (isFirefox) browserName = 'Firefox';
-  else if (isSafari) browserName = 'Safari';
-  else if (isEdge) browserName = 'Edge';
-
-  if (isAndroid) {
-    const androidMatch = userAgent.match(/Android (\d+(?:\.\d+)?)/);
-    const version = androidMatch ? androidMatch[1] : 'Unknown';
-    const modelMatch = userAgent.match(/;\s*([^)]+)\)/);
-    const deviceModel = modelMatch ? modelMatch[1].replace(/[;,]/g, '').trim() : 'Unknown Device';
-    return `${deviceModel} (Android ${version}) - ${browserName}`;
-  }
-  
-  if (isIOS) {
-    const iosMatch = userAgent.match(/OS (\d+(?:_\d+)*)/);
-    const version = iosMatch ? iosMatch[1].replace(/_/g, '.') : 'Unknown';
-    const isIPhone = userAgent.includes('iPhone');
-    const isIPad = userAgent.includes('iPad');
-    const deviceType = isIPad ? 'iPad' : isIPhone ? 'iPhone' : 'iOS Device';
-    return `${deviceType} (iOS ${version}) - ${browserName}`;
-  }
-  
-  if (isWindows) {
-    const windowsMatch = userAgent.match(/Windows NT (\d+\.\d+)/);
-    const version = windowsMatch ? windowsMatch[1] : 'Unknown';
-    const windowsVersion = version === '10.0' ? 'Windows 10' : 
-                          version === '6.3' ? 'Windows 8.1' :
-                          version === '6.1' ? 'Windows 7' : `Windows NT ${version}`;
-    return `${windowsVersion} Desktop - ${browserName}`;
-  }
-  
-  if (isMac) {
-    const macMatch = userAgent.match(/Mac OS X (\d+[._]\d+(?:[._]\d+)?)/);
-    const version = macMatch ? macMatch[1].replace(/_/g, '.') : 'Unknown';
-    return `Mac Desktop (macOS ${version}) - ${browserName}`;
-  }
-  
-  if (isLinux) {
-    return `Linux Desktop - ${browserName}`;
-  }
-  
-  return `Unknown Device - ${browserName}`;
 }
 
 type BookedRow = {
@@ -488,10 +433,10 @@ const storage = new DatabaseStorage();
 // dev schemas are still ensured on startup so fresh checkouts keep working.
 const startupPromise = isProduction
   ? Promise.resolve()
-  : ensureMemberStatusSchema({
-      db,
-      schemaName: getCurrentSchema(),
-    });
+  : Promise.all([
+      ensureMemberStatusSchema({ db, schemaName: getCurrentSchema() }),
+      ensureFineSchema({ db, schemaName: getCurrentSchema() }),
+    ]).then(() => undefined);
 
 // Express app setup
 const app = express();
@@ -514,6 +459,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use((req, res, next) => {
   startupPromise.then(() => next()).catch(next);
 });
+
+registerFineRoutes(app, new FineRepository(db, getCurrentSchema()));
 
 // Routes
 app.get("/api/members", async (req, res) => {
@@ -571,7 +518,7 @@ app.post("/api/bookings", async (req, res) => {
       return res.status(400).json({ error: SAME_DAY_BOOKING_LOCK_MESSAGE });
     }
 
-    const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+    const deviceInfo = parseDeviceInfo(req.headers['user-agent'] || '');
     const booking = await executeBookingTransaction({
       bookingId: generateUuid(),
       activityId: generateUuid(),
@@ -625,7 +572,7 @@ app.delete("/api/bookings/:memberId/:date", async (req, res) => {
       return res.status(400).json({ message: SAME_DAY_BOOKING_LOCK_MESSAGE });
     }
     
-    const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+    const deviceInfo = parseDeviceInfo(req.headers['user-agent'] || '');
     const deleted = await executeCancelTransaction({
       memberId,
       date,
@@ -732,7 +679,7 @@ app.post("/api/comments/:date", async (req, res) => {
     
     const comment = await storage.createComment(commentData);
     
-    const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+    const deviceInfo = parseDeviceInfo(req.headers['user-agent'] || '');
     await storage.createActivity({
       memberId: commentData.memberId,
       memberName: commentData.memberName,

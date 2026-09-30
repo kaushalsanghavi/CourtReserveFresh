@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { CaretUpIcon as ChevronUp } from "@phosphor-icons/react/dist/csr/CaretUp";
+import { CaretDownIcon as ChevronDown } from "@phosphor-icons/react/dist/csr/CaretDown";
 import type { Member, Booking } from "@shared/schema";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, getYear, getMonth } from "date-fns";
 

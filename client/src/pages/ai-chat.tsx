@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { SendHorizontal } from "lucide-react";
+import { PaperPlaneTiltIcon as SendHorizontal } from "@phosphor-icons/react/dist/csr/PaperPlaneTilt";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { ScrollArea } from "../components/ui/scroll-area";

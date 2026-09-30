@@ -1,6 +1,6 @@
 "use client"
 
-import { GripVertical } from "lucide-react"
+import { DotsSixVerticalIcon as GripVertical } from "@phosphor-icons/react/dist/csr/DotsSixVertical"
 import * as ResizablePrimitive from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"

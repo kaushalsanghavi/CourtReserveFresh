@@ -4,7 +4,8 @@ import { freezeTime, installMockApi } from "./mockApi";
 
 const AFTER_CUTOFF_NOW = "2026-03-02T10:00:00+05:30";
 const BEFORE_CUTOFF_NOW = "2026-03-02T08:45:00+05:30";
-const COOKIE_SAFE_NOW = "2030-03-02T10:00:00+05:30";
+const COOKIE_SAFE_NOW = "2030-03-04T10:00:00+05:30";
+const FINE_WINDOW_CLOSED_NOW = "2030-03-04T10:00:01+05:30";
 const MEMBER_ID = "m1";
 
 async function setSelectedMemberCookie(page: Page) {
@@ -74,6 +75,63 @@ test("selected member persists via cookie across reloads", async ({ page }) => {
   await expect(page.getByText("Selected: Kaushal")).toBeVisible();
 });
 
+test("fine actors share booking identity while the fined member stays separate", async ({ page }) => {
+  await loadWithMocks(page, { nowIso: COOKIE_SAFE_NOW });
+
+  await page.getByTestId("tab-party-fund-button").click();
+  await page.getByTestId("report-fine-button").click();
+  const reportDialog = page.getByRole("dialog");
+
+  await expect(reportDialog.getByTestId("reported-by-select")).toContainText("Kaushal");
+  await reportDialog.getByTestId("fined-member-select").click();
+  await page.getByRole("option", { name: "Anjali", exact: true }).click();
+  await expect
+    .poll(async () => page.evaluate(() => document.cookie))
+    .toContain("lastSelectedMember=m1");
+
+  await reportDialog.getByTestId("reported-by-select").click();
+  await page.getByRole("option", { name: "RK", exact: true }).click();
+  await expect
+    .poll(async () => page.evaluate(() => document.cookie))
+    .toContain("lastSelectedMember=m3");
+  await reportDialog.getByRole("button", { name: "Add to party fund" }).click();
+
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  await expect(page.getByText("Playwright (Chromium)").first()).toBeVisible();
+
+  await page.reload();
+  await page.getByTestId("tab-party-fund-button").click();
+  await expect(page.getByTestId("fine-row-fine-100")).toContainText("Anjali");
+  await page.getByRole("button", { name: "Mark paid" }).click();
+  await expect(page.getByText("Contributed")).toBeVisible();
+  await page.getByRole("button", { name: "Remove fine for Anjali" }).click();
+
+  const removeDialog = page.getByRole("dialog");
+  await expect(removeDialog.getByTestId("removed-by-select")).toContainText("RK");
+  await removeDialog.getByTestId("removed-by-select").click();
+  await page.getByRole("option", { name: "Anjali", exact: true }).click();
+  await removeDialog.getByPlaceholder("For example: wrong member selected").fill("Wrong person reported");
+  await removeDialog.getByRole("button", { name: "Remove fine" }).click();
+
+  await expect
+    .poll(async () => page.evaluate(() => document.cookie))
+    .toContain("lastSelectedMember=m4");
+  await page.getByTestId("tab-recent-activity-button").click();
+  await expect(page.getByText("Selected: Anjali")).toBeVisible();
+  await page.getByTestId("booking-history-btn-2030-03-04").click();
+  await expect(page.getByText("History for Mon, Mar 4, 2030")).toBeVisible();
+  await expect(page.getByText("Wrong person reported")).toBeVisible();
+  await expect(page.getByText("Playwright (Chromium)").first()).toBeVisible();
+});
+
+test("fine reporting closes immediately after 10:00 AM IST", async ({ page }) => {
+  await loadWithMocks(page, { nowIso: FINE_WINDOW_CLOSED_NOW });
+
+  await page.getByTestId("tab-party-fund-button").click();
+  await expect(page.getByTestId("report-fine-button")).toBeDisabled();
+  await expect(page.getByText("Reporting is open from 8:20 AM through 10:00 AM IST.")).toBeVisible();
+});
+
 test("inactive members are hidden from quick booking and stale cookies are cleared", async ({ page }) => {
   await loadWithMocks(page, {
     nowIso: AFTER_CUTOFF_NOW,
@@ -104,7 +162,7 @@ test("previous-week traversal remains available for viewing comments and history
   await page.keyboard.press("Escape");
 
   await page.getByTestId("booking-history-btn-2026-02-24").click();
-  await expect(page.getByText("Booking History for Tue, Feb 24, 2026")).toBeVisible();
+  await expect(page.getByText("History for Tue, Feb 24, 2026")).toBeVisible();
 });
 
 test("day card state matrix and capacity boundary are preserved", async ({ page }) => {

@@ -9,7 +9,9 @@ import { useSelectedMember } from "./QuickBooking";
 import CommentsAlternative from "./CommentsAlternative";
 import BookingHistory from "./BookingHistory";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { History, ChevronLeft, ChevronRight } from "lucide-react";
+import { ClockCounterClockwiseIcon as History } from "@phosphor-icons/react/dist/csr/ClockCounterClockwise";
+import { CaretLeftIcon as ChevronLeft } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon as ChevronRight } from "@phosphor-icons/react/dist/csr/CaretRight";
 import type { Member, Booking, Comment } from "@shared/schema";
 import { getMaxCapacityForDate } from "@shared/booking-capacity";
 import {

@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import * as MenubarPrimitive from "@radix-ui/react-menubar"
-import { Check, ChevronRight, Circle } from "lucide-react"
+import { CheckIcon as Check } from "@phosphor-icons/react/dist/csr/Check"
+import { CaretRightIcon as ChevronRight } from "@phosphor-icons/react/dist/csr/CaretRight"
+import { CircleIcon as Circle } from "@phosphor-icons/react/dist/csr/Circle"
 
 import { cn } from "@/lib/utils"
 
@@ -182,7 +184,7 @@ const MenubarRadioItem = React.forwardRef<
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <MenubarPrimitive.ItemIndicator>
-        <Circle className="h-2 w-2 fill-current" />
+        <Circle className="h-2 w-2" weight="fill" />
       </MenubarPrimitive.ItemIndicator>
     </span>
     {children}

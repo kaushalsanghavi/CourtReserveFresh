@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
-import { Check, ChevronDown, ChevronUp } from "lucide-react"
+import { CheckIcon as Check } from "@phosphor-icons/react/dist/csr/Check"
+import { CaretDownIcon as ChevronDown } from "@phosphor-icons/react/dist/csr/CaretDown"
+import { CaretUpIcon as ChevronUp } from "@phosphor-icons/react/dist/csr/CaretUp"
 
 import { cn } from "@/lib/utils"
 

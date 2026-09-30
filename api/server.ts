@@ -20,6 +20,10 @@ import {
   normalizeMemberStatusFilter,
   type MemberStatusFilter,
 } from "../server/member-status.js";
+import { parseDeviceInfo } from "../shared/device-info.js";
+import { FineRepository } from "../server/fine-repository.js";
+import { registerFineRoutes } from "../server/fine-routes.js";
+import { ensureFineSchema } from "../server/fine-schema.js";
 
 // Database setup
 const connection = neon(process.env.DATABASE_URL!);
@@ -36,65 +40,6 @@ function generateUuid(): string {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
-}
-
-function parseUserAgent(userAgent: string): string {
-  if (!userAgent) return 'Unknown Device';
-
-  const isAndroid = userAgent.includes('Android');
-  const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad');
-  const isWindows = userAgent.includes('Windows');
-  const isMac = userAgent.includes('Macintosh');
-  const isLinux = userAgent.includes('Linux') && !isAndroid;
-
-  const isChrome = userAgent.includes('Chrome') && !userAgent.includes('Edg');
-  const isFirefox = userAgent.includes('Firefox');
-  const isSafari = userAgent.includes('Safari') && !userAgent.includes('Chrome');
-  const isEdge = userAgent.includes('Edg');
-
-  let browserName = 'Unknown Browser';
-  if (isChrome) browserName = 'Chrome';
-  else if (isFirefox) browserName = 'Firefox';
-  else if (isSafari) browserName = 'Safari';
-  else if (isEdge) browserName = 'Edge';
-
-  if (isAndroid) {
-    const androidMatch = userAgent.match(/Android (\d+(?:\.\d+)?)/);
-    const version = androidMatch ? androidMatch[1] : 'Unknown';
-    const modelMatch = userAgent.match(/;\s*([^)]+)\)/);
-    const deviceModel = modelMatch ? modelMatch[1].replace(/[;,]/g, '').trim() : 'Unknown Device';
-    return `${deviceModel} (Android ${version}) - ${browserName}`;
-  }
-  
-  if (isIOS) {
-    const iosMatch = userAgent.match(/OS (\d+(?:_\d+)*)/);
-    const version = iosMatch ? iosMatch[1].replace(/_/g, '.') : 'Unknown';
-    const isIPhone = userAgent.includes('iPhone');
-    const isIPad = userAgent.includes('iPad');
-    const deviceType = isIPad ? 'iPad' : isIPhone ? 'iPhone' : 'iOS Device';
-    return `${deviceType} (iOS ${version}) - ${browserName}`;
-  }
-  
-  if (isWindows) {
-    const windowsMatch = userAgent.match(/Windows NT (\d+\.\d+)/);
-    const version = windowsMatch ? windowsMatch[1] : 'Unknown';
-    const windowsVersion = version === '10.0' ? 'Windows 10' : 
-                          version === '6.3' ? 'Windows 8.1' :
-                          version === '6.1' ? 'Windows 7' : `Windows NT ${version}`;
-    return `${windowsVersion} Desktop - ${browserName}`;
-  }
-  
-  if (isMac) {
-    const macMatch = userAgent.match(/Mac OS X (\d+[._]\d+(?:[._]\d+)?)/);
-    const version = macMatch ? macMatch[1].replace(/_/g, '.') : 'Unknown';
-    return `Mac Desktop (macOS ${version}) - ${browserName}`;
-  }
-  
-  if (isLinux) {
-    return `Linux Desktop - ${browserName}`;
-  }
-  
-  return `Unknown Device - ${browserName}`;
 }
 
 // Storage class
@@ -242,6 +187,8 @@ const storage = new DatabaseStorage();
 // Routes setup
 export async function setupRoutes(app: Express) {
   await ensureMemberStatusSchema({ db, schemaName: "public" });
+  await ensureFineSchema({ db, schemaName: "public" });
+  registerFineRoutes(app, new FineRepository(db, "public"));
 
   // Members routes
   app.get("/api/members", async (req, res) => {
@@ -303,7 +250,7 @@ export async function setupRoutes(app: Express) {
         return res.status(403).json({ error: INACTIVE_MEMBER_BOOKING_MESSAGE });
       }
 
-      const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+      const deviceInfo = parseDeviceInfo(req.headers['user-agent'] || '');
       const validationError = await validateBookingRequest({
         date: bookingData.date,
         memberId: bookingData.memberId,
@@ -354,7 +301,7 @@ export async function setupRoutes(app: Express) {
       const success = await storage.deleteBooking(memberId as string, date as string);
       
       if (success) {
-        const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+        const deviceInfo = parseDeviceInfo(req.headers['user-agent'] || '');
         // Get member name for activity
         const memberList = await storage.getMembers();
         const member = memberList.find(m => m.id === memberId);
@@ -425,7 +372,7 @@ export async function setupRoutes(app: Express) {
       
       const comment = await storage.createComment(commentData);
       
-      const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+      const deviceInfo = parseDeviceInfo(req.headers['user-agent'] || '');
       await storage.createActivity({
         memberId: commentData.memberId,
         memberName: commentData.memberName,

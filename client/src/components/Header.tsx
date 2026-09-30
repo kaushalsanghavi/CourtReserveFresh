@@ -1,4 +1,6 @@
-import { Clock, Calendar, Palette } from "lucide-react";
+import { ClockIcon as Clock } from "@phosphor-icons/react/dist/csr/Clock";
+import { CalendarIcon as Calendar } from "@phosphor-icons/react/dist/csr/Calendar";
+import { PaletteIcon as Palette } from "@phosphor-icons/react/dist/csr/Palette";
 import { Link, useLocation } from "wouter";
 
 function HeaderNavigation() {

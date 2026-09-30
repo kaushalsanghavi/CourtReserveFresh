@@ -4,12 +4,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { triggerHaptic } from "@/lib/haptics";
 import { useSelectedMember } from "./QuickBooking";
 import type { Member } from "@shared/schema";
+import { EqualizerIcon } from "@phosphor-icons/react/dist/csr/Equalizer";
 
 const ACTIVE_MEMBERS_QUERY = "/api/members?status=active";
 
 interface MobileBookingChromeProps {
-  activeTab: "recent-activity" | "monthly-participation" | "ai-chat";
-  onTabChange: (tab: "recent-activity" | "monthly-participation" | "ai-chat") => void;
+  activeTab: "recent-activity" | "monthly-participation" | "party-fund" | "ai-chat";
+  onTabChange: (tab: "recent-activity" | "monthly-participation" | "party-fund" | "ai-chat") => void;
 }
 
 export default function MobileBookingChrome({ activeTab, onTabChange }: MobileBookingChromeProps) {
@@ -76,7 +77,7 @@ export default function MobileBookingChrome({ activeTab, onTabChange }: MobileBo
         </div>
       </div>
 
-      {activeTab !== "ai-chat" && (
+      {activeTab !== "ai-chat" && activeTab !== "party-fund" && (
         <div className="border-t border-gray-100 px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700">
@@ -142,6 +143,18 @@ export default function MobileBookingChrome({ activeTab, onTabChange }: MobileBo
           data-testid="tab-monthly-participation-button-mobile"
         >
           Monthly Participation
+        </button>
+        <button
+          className={`mr-6 min-h-[44px] shrink-0 border-b-2 px-0 text-sm font-medium ${
+            activeTab === "party-fund"
+              ? "border-green-600 text-green-600"
+              : "border-transparent text-gray-500"
+          }`}
+          onClick={() => onTabChange("party-fund")}
+          data-testid="tab-party-fund-button-mobile"
+        >
+          <EqualizerIcon className="mr-1.5 inline h-4 w-4 align-[-3px]" weight={activeTab === "party-fund" ? "fill" : "regular"} aria-hidden="true" />
+          Party Fund
         </button>
         <button
           className={`min-h-[44px] shrink-0 border-b-2 px-0 text-sm font-medium ${

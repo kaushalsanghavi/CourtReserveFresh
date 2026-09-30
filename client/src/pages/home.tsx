@@ -2,17 +2,17 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import MobileBookingChrome from "@/components/MobileBookingChrome";
 import TabNavigation from "@/components/TabNavigation";
-import QuickBooking, { SelectedMemberProvider } from "@/components/QuickBooking";
+import QuickBooking from "@/components/QuickBooking";
 import BookingCalendar from "@/components/BookingCalendar";
 import RecentActivity from "@/components/RecentActivity";
 import MonthlyParticipation from "@/components/MonthlyParticipation";
+import PartyFund from "@/components/PartyFund";
 import AIChatPage from "@/pages/ai-chat";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"recent-activity" | "monthly-participation" | "ai-chat">("recent-activity");
+  const [activeTab, setActiveTab] = useState<"recent-activity" | "monthly-participation" | "party-fund" | "ai-chat">("recent-activity");
 
   return (
-    <SelectedMemberProvider>
       <div className="min-h-screen bg-gray-50">
         <div className="hidden md:block">
           <Header />
@@ -24,7 +24,7 @@ export default function Home() {
             <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
           
-          {activeTab !== "ai-chat" && (
+          {activeTab !== "ai-chat" && activeTab !== "party-fund" && (
             <div className="hidden md:block">
               <QuickBooking />
             </div>
@@ -41,6 +41,11 @@ export default function Home() {
               <MonthlyParticipation />
             </div>
           )}
+          {activeTab === "party-fund" && (
+            <div data-testid="tab-party-fund">
+              <PartyFund />
+            </div>
+          )}
           {activeTab === "ai-chat" && (
             <div data-testid="tab-ai-chat">
               <AIChatPage />
@@ -48,6 +53,5 @@ export default function Home() {
           )}
         </main>
       </div>
-    </SelectedMemberProvider>
   );
 }

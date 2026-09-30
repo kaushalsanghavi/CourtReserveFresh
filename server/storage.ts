@@ -18,6 +18,7 @@ import {
   escapeSqlString,
   type MemberStatusFilter,
 } from "./member-status";
+import { ensureFineSchema } from "./fine-schema";
 
 function generateUuid(): string {
   const g: any = (globalThis as any);
@@ -67,6 +68,7 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   private initializationAttempted = false;
   private memberStatusSchemaEnsured = false;
+  private fineSchemaEnsured = false;
   constructor() {}
 
   /**
@@ -77,7 +79,14 @@ export class DatabaseStorage implements IStorage {
     if (this.initializationAttempted) return;
     this.initializationAttempted = true;
     await this.ensureMemberLifecycleSchema();
+    await this.ensurePartyFundSchema();
     await this.initializeData();
+  }
+
+  private async ensurePartyFundSchema(): Promise<void> {
+    if (this.fineSchemaEnsured) return;
+    await ensureFineSchema({ db, schemaName: getCurrentSchema() });
+    this.fineSchemaEnsured = true;
   }
 
   private async ensureMemberLifecycleSchema(): Promise<void> {

@@ -23,77 +23,14 @@ import {
   isMemberActive,
   normalizeMemberStatusFilter,
 } from "./member-status.js";
-
-function parseUserAgent(userAgent: string): string {
-  if (!userAgent) return 'Unknown Device';
-
-  // More detailed user agent parsing for exact device info
-  const isAndroid = userAgent.includes('Android');
-  const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad');
-  const isWindows = userAgent.includes('Windows');
-  const isMac = userAgent.includes('Macintosh');
-  const isLinux = userAgent.includes('Linux') && !isAndroid;
-
-  // Browser detection
-  const isChrome = userAgent.includes('Chrome') && !userAgent.includes('Edg');
-  const isFirefox = userAgent.includes('Firefox');
-  const isSafari = userAgent.includes('Safari') && !userAgent.includes('Chrome');
-  const isEdge = userAgent.includes('Edg');
-
-  let browserName = 'Unknown Browser';
-  if (isChrome) browserName = 'Chrome';
-  else if (isFirefox) browserName = 'Firefox';
-  else if (isSafari) browserName = 'Safari';
-  else if (isEdge) browserName = 'Edge';
-
-  if (isAndroid) {
-    const androidMatch = userAgent.match(/Android (\d+(?:\.\d+)?)/);
-    const version = androidMatch ? androidMatch[1] : 'Unknown';
-    
-    // Try to extract device model
-    const modelMatch = userAgent.match(/;\s*([^)]+)\)/);
-    const deviceModel = modelMatch ? modelMatch[1].replace(/[;,]/g, '').trim() : 'Unknown Device';
-    
-    return `${deviceModel} (Android ${version}) - ${browserName}`;
-  }
-  
-  if (isIOS) {
-    const iosMatch = userAgent.match(/OS (\d+(?:_\d+)*)/);
-    const version = iosMatch ? iosMatch[1].replace(/_/g, '.') : 'Unknown';
-    
-    const isIPhone = userAgent.includes('iPhone');
-    const isIPad = userAgent.includes('iPad');
-    const deviceType = isIPad ? 'iPad' : isIPhone ? 'iPhone' : 'iOS Device';
-    
-    return `${deviceType} (iOS ${version}) - ${browserName}`;
-  }
-  
-  if (isWindows) {
-    const windowsMatch = userAgent.match(/Windows NT (\d+\.\d+)/);
-    const version = windowsMatch ? windowsMatch[1] : 'Unknown';
-    const windowsVersion = version === '10.0' ? 'Windows 10' : 
-                          version === '6.3' ? 'Windows 8.1' :
-                          version === '6.1' ? 'Windows 7' : `Windows NT ${version}`;
-    
-    return `${windowsVersion} Desktop - ${browserName}`;
-  }
-  
-  if (isMac) {
-    const macMatch = userAgent.match(/Mac OS X (\d+[._]\d+(?:[._]\d+)?)/);
-    const version = macMatch ? macMatch[1].replace(/_/g, '.') : 'Unknown';
-    
-    return `Mac Desktop (macOS ${version}) - ${browserName}`;
-  }
-  
-  if (isLinux) {
-    return `Linux Desktop - ${browserName}`;
-  }
-  
-  return `Unknown Device - ${browserName}`;
-}
+import { parseDeviceInfo } from "../shared/device-info.js";
+import { db, getCurrentSchema } from "./db.js";
+import { FineRepository } from "./fine-repository.js";
+import { registerFineRoutes } from "./fine-routes.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await storage.ensureInitialized();
+  registerFineRoutes(app, new FineRepository(db, getCurrentSchema()));
 
   // Get all members
   app.get("/api/members", async (req, res) => {
@@ -166,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Log the activity
-      const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+      const deviceInfo = parseDeviceInfo(req.headers['user-agent'] || '');
       await storage.createActivity({
         memberId,
         memberName: member.name,
@@ -208,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const memberName = member?.name || "Unknown";
 
       // Log the activity
-      const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
+      const deviceInfo = parseDeviceInfo(req.headers['user-agent'] || '');
       await storage.createActivity({
         memberId,
         memberName,

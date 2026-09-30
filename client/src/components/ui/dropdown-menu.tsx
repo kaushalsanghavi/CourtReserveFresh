@@ -1,6 +1,8 @@
 import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
-import { Check, ChevronRight, Circle } from "lucide-react"
+import { CheckIcon as Check } from "@phosphor-icons/react/dist/csr/Check"
+import { CaretRightIcon as ChevronRight } from "@phosphor-icons/react/dist/csr/CaretRight"
+import { CircleIcon as Circle } from "@phosphor-icons/react/dist/csr/Circle"
 
 import { cn } from "@/lib/utils"
 
@@ -128,7 +130,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
-        <Circle className="h-2 w-2 fill-current" />
+        <Circle className="h-2 w-2" weight="fill" />
       </DropdownMenuPrimitive.ItemIndicator>
     </span>
     {children}

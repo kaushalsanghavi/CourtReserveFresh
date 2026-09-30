@@ -8,7 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useSelectedMember } from "./QuickBooking";
 import type { Comment } from "@shared/schema";
 import { format } from "date-fns";
-import { MessageCircle } from "lucide-react";
+import { ChatCircleIcon as MessageCircle } from "@phosphor-icons/react/dist/csr/ChatCircle";
 
 interface CommentsProps {
   date: string;
