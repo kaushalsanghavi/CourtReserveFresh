@@ -6,9 +6,8 @@ import {
 } from "../../shared/booking-time-policy";
 import { INACTIVE_MEMBER_BOOKING_MESSAGE } from "../../server/member-status";
 import {
-  FINE_REPORTING_WINDOW_MESSAGE,
   getFineAmount,
-  getFineReportingWindow,
+  getFineIncidentDate,
 } from "../../shared/fine-policy";
 
 type Member = {
@@ -208,10 +207,6 @@ export async function installMockApi(page: Page, options: MockApiOptions) {
       return json(route, 200, [...bookings].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
     }
 
-    if (pathname === "/api/fines/reporting-window" && method === "GET") {
-      return json(route, 200, getFineReportingWindow(now));
-    }
-
     if (pathname === "/api/fines" && method === "GET") {
       const month = url.searchParams.get("month");
       return json(route, 200, fines.filter((fine) => fine.status !== "removed" && fine.incidentDate.startsWith(month || "")));
@@ -228,10 +223,7 @@ export async function installMockApi(page: Page, options: MockApiOptions) {
     }
 
     if (pathname === "/api/fines" && method === "POST") {
-      const window = getFineReportingWindow(now);
-      if (!window.isOpen) {
-        return json(route, 403, { message: FINE_REPORTING_WINDOW_MESSAGE, reportingWindow: window });
-      }
+      const incidentDate = getFineIncidentDate(now);
       const payload = req.postDataJSON() as {
         memberId: string;
         actorMemberId: string;
@@ -243,7 +235,7 @@ export async function installMockApi(page: Page, options: MockApiOptions) {
       if (!subject || !actor) {
         return json(route, 403, { message: "The reporting and fined members must both be active." });
       }
-      if (fines.some((fine) => fine.memberId === subject.id && fine.incidentDate === window.date && fine.status !== "removed")) {
+      if (fines.some((fine) => fine.memberId === subject.id && fine.incidentDate === incidentDate && fine.status !== "removed")) {
         return json(route, 409, { message: "This member already has a fine for today." });
       }
       const createdAt = new Date(now.getTime() + idCounter * 1000).toISOString();
@@ -251,7 +243,7 @@ export async function installMockApi(page: Page, options: MockApiOptions) {
         id: `fine-${idCounter}`,
         memberId: subject.id,
         memberName: subject.name,
-        incidentDate: window.date,
+        incidentDate,
         reason: payload.reason,
         amount: getFineAmount(payload.reason),
         status: "due",

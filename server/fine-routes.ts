@@ -8,9 +8,8 @@ import {
   reportFineSchema,
 } from "../shared/schema.js";
 import {
-  FINE_REPORTING_WINDOW_MESSAGE,
   getFineAmount,
-  getFineReportingWindow,
+  getFineIncidentDate,
 } from "../shared/fine-policy.js";
 import { parseDeviceInfo } from "../shared/device-info.js";
 import { FineRepository, isFineDuplicateError } from "./fine-repository.js";
@@ -27,10 +26,6 @@ function requestError(res: any, error: unknown, fallback: string) {
 }
 
 export function registerFineRoutes(app: Express, repository: FineRepository) {
-  app.get("/api/fines/reporting-window", (_req, res) => {
-    res.json(getFineReportingWindow());
-  });
-
   app.get("/api/fines/history", async (req, res) => {
     try {
       const month = fineMonthSchema.parse(req.query.month);
@@ -60,15 +55,10 @@ export function registerFineRoutes(app: Express, repository: FineRepository) {
 
   app.post("/api/fines", async (req, res) => {
     try {
-      const window = getFineReportingWindow();
-      if (!window.isOpen) {
-        return res.status(403).json({ message: FINE_REPORTING_WINDOW_MESSAGE, reportingWindow: window });
-      }
-
       const input = reportFineSchema.parse(req.body);
       const fine = await repository.report({
         ...input,
-        incidentDate: window.date,
+        incidentDate: getFineIncidentDate(),
         amount: getFineAmount(input.reason),
         deviceInfo: parseDeviceInfo(req.headers["user-agent"] || ""),
       });

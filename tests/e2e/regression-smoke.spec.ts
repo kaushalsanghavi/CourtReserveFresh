@@ -5,7 +5,7 @@ import { freezeTime, installMockApi } from "./mockApi";
 const AFTER_CUTOFF_NOW = "2026-03-02T10:00:00+05:30";
 const BEFORE_CUTOFF_NOW = "2026-03-02T08:45:00+05:30";
 const COOKIE_SAFE_NOW = "2030-03-04T10:00:00+05:30";
-const FINE_WINDOW_CLOSED_NOW = "2030-03-04T10:00:01+05:30";
+const LATE_NIGHT_FINE_NOW = "2030-03-04T23:45:00+05:30";
 const MEMBER_ID = "m1";
 
 async function setSelectedMemberCookie(page: Page) {
@@ -124,12 +124,16 @@ test("fine actors share booking identity while the fined member stays separate",
   await expect(page.getByText("Playwright (Chromium)").first()).toBeVisible();
 });
 
-test("fine reporting closes immediately after 10:00 AM IST", async ({ page }) => {
-  await loadWithMocks(page, { nowIso: FINE_WINDOW_CLOSED_NOW });
+test("fine reporting remains available at any time", async ({ page }) => {
+  await loadWithMocks(page, { nowIso: LATE_NIGHT_FINE_NOW });
 
   await page.getByTestId("tab-party-fund-button").click();
-  await expect(page.getByTestId("report-fine-button")).toBeDisabled();
-  await expect(page.getByText("Reporting is open from 8:20 AM through 10:00 AM IST.")).toBeVisible();
+  await page.getByTestId("report-fine-button").click();
+  const reportDialog = page.getByRole("dialog");
+  await reportDialog.getByTestId("fined-member-select").click();
+  await page.getByRole("option", { name: "Anjali", exact: true }).click();
+  await reportDialog.getByRole("button", { name: "Add to party fund" }).click();
+  await expect(page.getByTestId("fine-row-fine-100")).toContainText("Anjali");
 });
 
 test("inactive members are hidden from quick booking and stale cookies are cleared", async ({ page }) => {

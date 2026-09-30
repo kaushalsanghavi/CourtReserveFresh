@@ -2,7 +2,6 @@ import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO, startOfMonth, subMonths } from "date-fns";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
-import { ClockIcon } from "@phosphor-icons/react/dist/csr/Clock";
 import { ClockCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ClockCounterClockwise";
 import { CurrencyInrIcon } from "@phosphor-icons/react/dist/csr/CurrencyInr";
 import { EqualizerIcon } from "@phosphor-icons/react/dist/csr/Equalizer";
@@ -44,13 +43,6 @@ const fineLabels: Record<FineReason, string> = {
   "no-show": "No-show",
 };
 
-interface ReportingWindow {
-  date: string;
-  isOpen: boolean;
-  opensAt: string;
-  closesAt: string;
-}
-
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
@@ -80,11 +72,6 @@ export default function PartyFund() {
   const [reason, setReason] = useState<FineReason>("late");
   const [note, setNote] = useState("");
 
-  const { data: reportingWindow, isLoading: isWindowLoading } = useQuery<ReportingWindow>({
-    queryKey: ["/api/fines/reporting-window"],
-    staleTime: 0,
-    refetchInterval: 15_000,
-  });
   const { data: fines = [], isLoading: finesLoading } = useQuery<Fine[]>({
     queryKey: ["/api/fines", selectedMonth],
     queryFn: () => fetchJson(`/api/fines?month=${selectedMonth}`),
@@ -194,12 +181,11 @@ export default function PartyFund() {
               Hey, listen, you came late. Fine's due. Every rupee goes toward making the month-end party happen.
             </p>
           </div>
-          <div className="sm:text-right">
-            <Button className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" onClick={() => setDialogOpen(true)} disabled={isWindowLoading || !reportingWindow?.isOpen} data-testid="report-fine-button">
+          <div>
+            <Button className="w-full bg-green-600 hover:bg-green-700 sm:w-auto" onClick={() => setDialogOpen(true)} data-testid="report-fine-button">
               <PlusIcon weight="bold" aria-hidden="true" />
               Report a fine
             </Button>
-            {!isWindowLoading && !reportingWindow?.isOpen && <p className="mt-1.5 text-xs text-gray-500">Reporting is open from 8:20 AM through 10:00 AM IST.</p>}
           </div>
         </div>
 
@@ -346,10 +332,6 @@ export default function PartyFund() {
             <DialogDescription>Keep it light. This is a nudge for the group and a boost for the party fund.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex gap-3 rounded-md border border-green-200 bg-green-50 px-3 py-3">
-              <ClockIcon className="mt-0.5 h-4 w-4 shrink-0 text-green-700" weight="bold" />
-              <div><p className="text-sm font-medium text-green-900">Today's reporting window</p><p className="mt-0.5 text-xs text-green-700">8:20 AM-10:00 AM · Booking date is locked to {reportingWindow ? format(parseISO(reportingWindow.date), "d MMMM") : "today"}.</p></div>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="fined-member">Who owes the party fund?</Label>
               <Select value={memberId} onValueChange={setMemberId}>
@@ -379,7 +361,7 @@ export default function PartyFund() {
             <div className="flex items-center justify-between rounded-md bg-gray-50 px-3 py-2 text-sm"><span className="text-gray-600">Fine amount</span><span className="font-semibold text-gray-900">₹{reason === "late" ? 50 : 100}</span></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={!memberId || !selectedMemberId || !reportingWindow?.isOpen || reportMutation.isPending}>{reportMutation.isPending ? "Adding..." : "Add to party fund"}</Button>
+              <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={!memberId || !selectedMemberId || reportMutation.isPending}>{reportMutation.isPending ? "Adding..." : "Add to party fund"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
