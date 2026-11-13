@@ -6,6 +6,7 @@ import QuickBooking from "@/components/QuickBooking";
 import BookingCalendar from "@/components/BookingCalendar";
 import RecentActivity from "@/components/RecentActivity";
 import MonthlyParticipation from "@/components/MonthlyParticipation";
+import WeeklyParticipation from "@/components/WeeklyParticipation";
 import PartyFund from "@/components/PartyFund";
 import AIChatPage from "@/pages/ai-chat";
 
@@ -39,6 +40,7 @@ export default function Home() {
           {activeTab === "monthly-participation" && (
             <div data-testid="tab-monthly-participation">
               <MonthlyParticipation />
+              <WeeklyParticipation />
             </div>
           )}
           {activeTab === "party-fund" && (

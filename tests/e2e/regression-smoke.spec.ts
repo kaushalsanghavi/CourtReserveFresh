@@ -280,3 +280,17 @@ test("monthly participation hides inactive members only when they have no monthl
   await expect(page.getByTestId("total-bookings-m1")).toContainText("1");
   await expect(page.getByTestId("member-row-m7")).toHaveCount(0);
 });
+
+test("weekly participation counts bookings per week, busiest first", async ({ page }) => {
+  await loadWithMocks(page, { nowIso: AFTER_CUTOFF_NOW });
+
+  await page.getByTestId("tab-monthly-participation-button").click();
+  await expect(page.getByTestId("weekly-participation")).toBeVisible();
+
+  const firstRow = page.locator("[data-testid^='weekly-row-']").first();
+  await expect(firstRow).toHaveAttribute("data-testid", "weekly-row-m2");
+  await expect(page.getByTestId("weekly-count-m2-2026-03-02")).toHaveText("3");
+  await expect(page.getByTestId("weekly-count-m3-2026-02-23")).toHaveText("1");
+  await expect(page.getByTestId("weekly-count-m3-2026-03-02")).toHaveText("1");
+  await expect(page.getByTestId("weekly-difference-m2")).toContainText("+");
+});
