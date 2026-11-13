@@ -219,12 +219,6 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
       </div>
       
       <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">BOOKED MEMBERS</p>
-          {showWeeklyCounts && (
-            <p className="text-xs text-gray-500 uppercase tracking-wide">DAYS THIS WEEK</p>
-          )}
-        </div>
         {dayBookings.length > 0 ? (
           <div className="flex flex-wrap gap-1" data-testid={`booked-members-${dateStr}`}>
             {dayBookings.map((booking) => (

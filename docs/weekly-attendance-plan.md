@@ -10,7 +10,7 @@ Not building: the Weekly Attendance tab, the week picker, the per-day bars, a mo
 
 ## Behaviour
 1. **Where:** `DayCard` in `BookingCalendar.tsx`, on booked-member chips, only when the day is full (bookings >= `getMaxCapacityForDate(date)`, currently 5). Days with open slots are unchanged.
-2. **Label:** a "Days this week" caption on the right of the "Booked members" heading, shown with the counts.
+2. **No section labels:** the calendar day cards carry no "Booked members" or "Days this week" headings; the chips and their numbers stand on their own (the day-count meaning is explained by the tap popover and in the group message).
 3. **Count:** distinct days the member has booked in the Monday-Sunday week containing the card's date (past and future days of that week included). Cancelled bookings are deleted rows, so they drop out automatically.
 4. **Three levels:**
 
