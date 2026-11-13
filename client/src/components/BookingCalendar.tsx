@@ -9,11 +9,13 @@ import { useSelectedMember } from "./QuickBooking";
 import CommentsAlternative from "./CommentsAlternative";
 import BookingHistory from "./BookingHistory";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ClockCounterClockwiseIcon as History } from "@phosphor-icons/react/dist/csr/ClockCounterClockwise";
 import { CaretLeftIcon as ChevronLeft } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CaretRightIcon as ChevronRight } from "@phosphor-icons/react/dist/csr/CaretRight";
 import type { Member, Booking, Comment } from "@shared/schema";
 import { getMaxCapacityForDate } from "@shared/booking-capacity";
+import { getMonthlyParticipationPercent, getWeeklyBadgeLevel, getWeeklyBookingCount } from "@shared/weekly-bookings";
 import {
   isDateOutsideRollingBookingWindow,
   isPastBookingDate,
@@ -49,6 +51,7 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
   const dateStr = format(date, "yyyy-MM-dd");
   const dayBookings = bookings.filter(b => b.date === dateStr);
   const maxSlots = getMaxCapacityForDate(dateStr);
+  const showWeeklyCounts = dayBookings.length >= maxSlots;
   const isToday = isSameDay(date, new Date());
   const isWeekendDay = isWeekend(date);
   const [displaySlotCount, setDisplaySlotCount] = useState(dayBookings.length);
@@ -216,7 +219,12 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
       </div>
       
       <div className="mb-4">
-        <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">BOOKED MEMBERS</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-gray-500 uppercase tracking-wide">BOOKED MEMBERS</p>
+          {showWeeklyCounts && (
+            <p className="text-xs text-gray-500 uppercase tracking-wide">DAYS THIS WEEK</p>
+          )}
+        </div>
         {dayBookings.length > 0 ? (
           <div className="flex flex-wrap gap-1" data-testid={`booked-members-${dateStr}`}>
             {dayBookings.map((booking) => (
@@ -229,6 +237,43 @@ function DayCard({ date, bookings, members, onBookSlot, onCancelBooking, isBooki
                 } ${shouldShowChipEntry && booking.memberId === selectedMemberId ? "booking-chip-enter" : ""}`}
               >
                 {booking.memberName}
+                {showWeeklyCounts && (() => {
+                  const weeklyCount = getWeeklyBookingCount(bookings, booking.memberId, dateStr);
+                  const monthlyPercent = getMonthlyParticipationPercent(bookings, booking.memberId, dateStr);
+                  const level = getWeeklyBadgeLevel(weeklyCount, monthlyPercent);
+                  const dayLabel = `${weeklyCount} ${weeklyCount === 1 ? "day" : "days"} booked this week`;
+                  return (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className={`relative ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded px-1 text-[10px] font-semibold before:absolute before:-inset-2 before:content-[''] ${
+                            level === "heavy-high-month"
+                              ? "bg-pink-100 text-pink-700"
+                              : level === "heavy"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-white text-gray-500"
+                          }`}
+                          title={`${dayLabel}, ${monthlyPercent}% of the month`}
+                          aria-label={`${dayLabel}, ${monthlyPercent}% of the month. Tap for details`}
+                          data-level={level}
+                          data-testid={`weekly-count-${booking.memberId}-${dateStr}`}
+                        >
+                          {weeklyCount}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        side="top"
+                        className="w-auto max-w-[220px] px-3 py-2 text-xs"
+                        data-testid={`weekly-count-details-${booking.memberId}-${dateStr}`}
+                      >
+                        <p className="font-medium text-gray-900">{booking.memberName}</p>
+                        <p className="text-gray-600">{dayLabel}</p>
+                        <p className="text-gray-600">{monthlyPercent}% of the month booked</p>
+                      </PopoverContent>
+                    </Popover>
+                  );
+                })()}
               </span>
             ))}
           </div>

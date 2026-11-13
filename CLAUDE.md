@@ -8,3 +8,7 @@
 - Party Fund always uses `EqualizerIcon` as its feature and navigation icon because it carries the intended music association.
 - When modifying a legacy surface that still uses Lucide, migrate the icons in that surface to Phosphor as part of the change.
 - The product should look refined and polished, in keeping with the Ramp-inspired design system.
+
+## Platform
+
+- The app is used primarily on mobile web. Design and verify for touch first (roughly 375px wide): never rely on hover for information or actions, make tap targets comfortable, and provide a tap equivalent (popover, sheet) for anything that has a hover tooltip. Desktop is secondary.

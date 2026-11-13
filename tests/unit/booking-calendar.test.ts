@@ -50,7 +50,7 @@ const members: Member[] = [
 
 const bookings: Booking[] = [];
 
-function renderBookingCalendar() {
+function renderBookingCalendar(seedBookings: Booking[] = bookings) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -60,7 +60,7 @@ function renderBookingCalendar() {
   });
 
   queryClient.setQueryData(["/api/members"], members);
-  queryClient.setQueryData(["/api/bookings"], bookings);
+  queryClient.setQueryData(["/api/bookings"], seedBookings);
 
   return render(
     React.createElement(
@@ -99,5 +99,51 @@ describe("BookingCalendar mobile week sections", () => {
 
     expect(screen.queryByText("Earlier this week")).not.toBeInTheDocument();
     expect(screen.getByText((content) => content.replace(/\s+/g, " ").trim() === "Week of May 25")).toBeInTheDocument();
+  });
+});
+
+describe("BookingCalendar weekly counts", () => {
+  const makeBooking = (id: string, memberId: string, memberName: string, date: string): Booking => ({
+    id,
+    memberId,
+    memberName,
+    date,
+    createdAt: new Date("2026-06-01T00:00:00.000Z"),
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-04T12:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("shows weekly counts only on full days and reveals details on tap", () => {
+    const seeded = [
+      makeBooking("a1", "member-1", "Kaushal", "2026-06-01"),
+      makeBooking("a2", "member-1", "Kaushal", "2026-06-02"),
+      makeBooking("a3", "member-1", "Kaushal", "2026-06-03"),
+      makeBooking("a4", "member-1", "Kaushal", "2026-06-04"),
+      makeBooking("b1", "member-2", "Asha", "2026-06-04"),
+      makeBooking("b2", "member-3", "Dev", "2026-06-04"),
+      makeBooking("b3", "member-4", "Meera", "2026-06-04"),
+      makeBooking("b4", "member-5", "Rohan", "2026-06-04"),
+      makeBooking("c1", "member-2", "Asha", "2026-06-03"),
+    ];
+    renderBookingCalendar(seeded);
+
+    // Jun 3 is not full (2/5): no counts. Jun 4 is full (5/5): counts shown.
+    expect(screen.queryByTestId("weekly-count-member-1-2026-06-03")).not.toBeInTheDocument();
+    const pill = screen.getByTestId("weekly-count-member-1-2026-06-04");
+    expect(pill).toHaveTextContent("4");
+    expect(pill).toHaveAttribute("data-level", "heavy");
+    expect(screen.getByTestId("weekly-count-member-2-2026-06-04")).toHaveAttribute("data-level", "normal");
+
+    fireEvent.click(pill);
+    const details = screen.getByTestId("weekly-count-details-member-1-2026-06-04");
+    expect(details).toHaveTextContent("4 days booked this week");
+    expect(details).toHaveTextContent("18% of the month booked");
   });
 });
