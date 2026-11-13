@@ -1,9 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { Button } from "@/components/ui/button";
 import type { Member, Booking } from "@shared/schema";
 import { getFineIncidentDate } from "@shared/fine-policy";
-import { buildWeeklyParticipation, getWeekStart, getWeekStarts } from "@shared/weekly-participation";
+import { getWeekStart, getWeekdays, getWeeklyPlayerCounts, shiftWeek } from "@shared/weekly-participation";
 
 const avatarColors = {
   green: "bg-green-100 text-green-700",
@@ -18,118 +21,95 @@ const avatarColors = {
   cyan: "bg-cyan-100 text-cyan-700",
 };
 
-function cellTone(count: number): string {
-  if (count === 0) return "text-gray-300";
-  if (count === 1) return "bg-green-50 text-green-800";
-  if (count === 2) return "bg-green-100 text-green-800";
-  if (count === 3) return "bg-green-200 text-green-900";
-  return "bg-green-300 text-green-900";
-}
-
-function formatDifference(difference: number): string {
-  if (difference === 0) return "On par";
-  return `${difference > 0 ? "+" : ""}${difference.toFixed(1)}`;
-}
-
 export default function WeeklyParticipation() {
   const { data: members = [] } = useQuery<Member[]>({ queryKey: ["/api/members"] });
   const { data: allBookings = [] } = useQuery<Booking[]>({ queryKey: ["/api/bookings"] });
 
   // Booking dates are IST calendar days, so "this week" is decided in IST too.
-  const today = getFineIncidentDate();
-  const currentWeek = getWeekStart(today);
-  const weekStarts = useMemo(() => getWeekStarts(today), [today]);
+  const currentWeek = getWeekStart(getFineIncidentDate());
+  const [weekStart, setWeekStart] = useState(currentWeek);
+  const weekdays = getWeekdays(weekStart);
 
-  const { rows, groupAverage } = useMemo(
-    () => buildWeeklyParticipation(members, allBookings, weekStarts),
-    [members, allBookings, weekStarts],
+  const rows = useMemo(
+    () => getWeeklyPlayerCounts(members, allBookings, weekStart),
+    [members, allBookings, weekStart],
   );
 
-  const weekLabel = (week: string) => {
-    if (week === currentWeek) return "This week";
-    if (week > currentWeek) return "Next week";
-    return format(parseISO(week), "MMM d");
-  };
+  const offset = Math.round((parseISO(weekStart).getTime() - parseISO(currentWeek).getTime()) / (7 * 86400000));
+  const weekName =
+    offset === 0 ? "This week" : offset === 1 ? "Next week" : offset === -1 ? "Last week" : null;
+  const range = `${format(parseISO(weekdays[0]), "d MMM")} – ${format(parseISO(weekdays[4]), "d MMM")}`;
 
   return (
     <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6" data-testid="weekly-participation">
-      <div className="mb-6">
-        <h2 className="text-lg font-medium text-gray-900">Weekly Participation</h2>
-        <p className="text-sm text-gray-600">
-          Bookings per week, most active first. The group averages{" "}
-          <span className="font-medium text-gray-900" data-testid="weekly-group-average">
-            {groupAverage.toFixed(1)}
-          </span>{" "}
-          a week, so anyone well above it can hand a slot to someone below it.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div>
+          <h2 className="text-lg font-medium text-gray-900">Weekly Participation</h2>
+          <p className="text-sm text-gray-600">Most days first. Can't get a slot? Ask someone near the top.</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setWeekStart(shiftWeek(weekStart, -1))}
+            aria-label="Previous week"
+            data-testid="weekly-prev"
+          >
+            <CaretLeftIcon className="h-4 w-4" weight="bold" />
+          </Button>
+          <div className="min-w-[9.5rem] text-center" data-testid="weekly-label">
+            <div className="text-sm font-medium text-gray-900">{weekName ?? `Week of ${format(parseISO(weekStart), "d MMM")}`}</div>
+            <div className="text-xs text-gray-500">{range}</div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setWeekStart(shiftWeek(weekStart, 1))}
+            aria-label="Next week"
+            data-testid="weekly-next"
+          >
+            <CaretRightIcon className="h-4 w-4" weight="bold" />
+          </Button>
+        </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full" data-testid="weekly-participation-table">
-          <thead>
-            <tr className="border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wide">
-              <th className="sticky left-0 bg-white text-left py-3 pr-3">Member</th>
-              <th className="py-3 px-2 text-center whitespace-nowrap">Avg / week</th>
-              <th className="py-3 px-2 text-center whitespace-nowrap">vs group</th>
-              {weekStarts.map((week) => (
-                <th
-                  key={week}
-                  className={`py-3 px-2 text-center whitespace-nowrap ${week === currentWeek ? "text-green-700" : ""}`}
-                  title={`Week of ${format(parseISO(week), "d MMM yyyy")}`}
-                >
-                  {weekLabel(week)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {rows.map((row) => (
-              <tr key={row.member.id} data-testid={`weekly-row-${row.member.id}`}>
-                <td className="sticky left-0 bg-white py-3 pr-3">
-                  <div className="flex items-center">
-                    <div
-                      className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center mr-3 ${
-                        avatarColors[row.member.avatarColor as keyof typeof avatarColors] || "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      <span className="text-sm font-medium">{row.member.initials}</span>
-                    </div>
-                    <span className="text-sm font-medium text-gray-900 whitespace-nowrap">{row.member.name}</span>
-                  </div>
-                </td>
-                <td className="py-3 px-2 text-center text-sm text-gray-900 tabular-nums" data-testid={`weekly-average-${row.member.id}`}>
-                  {row.average.toFixed(1)}
-                </td>
-                <td className="py-3 px-2 text-center">
+
+      <ul className="divide-y divide-gray-100" data-testid="weekly-player-list">
+        {rows.map((row) => (
+          <li key={row.member.id} className="flex items-center gap-3 py-3" data-testid={`weekly-row-${row.member.id}`}>
+            <div
+              className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center ${
+                avatarColors[row.member.avatarColor as keyof typeof avatarColors] || "bg-gray-100 text-gray-700"
+              }`}
+            >
+              <span className="text-sm font-medium">{row.member.initials}</span>
+            </div>
+            <span className="flex-1 min-w-0 truncate text-sm font-medium text-gray-900">{row.member.name}</span>
+            <div className="hidden sm:flex items-center gap-1" aria-hidden="true">
+              {weekdays.map((day) => {
+                const playing = row.bookedDates.includes(day);
+                return (
                   <span
-                    className={`px-2 py-1 text-xs font-medium rounded tabular-nums whitespace-nowrap ${
-                      row.difference >= 0.5
-                        ? "bg-amber-100 text-amber-800"
-                        : row.difference <= -0.5
-                          ? "bg-sky-100 text-sky-800"
-                          : "bg-gray-100 text-gray-700"
+                    key={day}
+                    className={`inline-flex h-7 w-9 items-center justify-center rounded text-xs font-medium ${
+                      playing ? "bg-green-100 text-green-800" : "bg-gray-50 text-gray-300"
                     }`}
-                    data-testid={`weekly-difference-${row.member.id}`}
                   >
-                    {formatDifference(row.difference)}
+                    {format(parseISO(day), "EEE")}
                   </span>
-                </td>
-                {row.counts.map((count, index) => (
-                  <td key={weekStarts[index]} className="py-3 px-2 text-center">
-                    <span
-                      className={`inline-flex h-7 w-7 items-center justify-center rounded text-sm tabular-nums ${cellTone(count)} ${
-                        weekStarts[index] > currentWeek ? "opacity-60" : ""
-                      }`}
-                      data-testid={`weekly-count-${row.member.id}-${weekStarts[index]}`}
-                    >
-                      {count}
-                    </span>
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                );
+              })}
+            </div>
+            <span
+              className={`w-16 text-right text-sm tabular-nums ${row.count === 0 ? "text-gray-400" : "font-semibold text-gray-900"}`}
+              data-testid={`weekly-count-${row.member.id}`}
+            >
+              {row.count} {row.count === 1 ? "day" : "days"}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

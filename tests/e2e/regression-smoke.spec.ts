@@ -281,16 +281,19 @@ test("monthly participation hides inactive members only when they have no monthl
   await expect(page.getByTestId("member-row-m7")).toHaveCount(0);
 });
 
-test("weekly participation counts bookings per week, busiest first", async ({ page }) => {
+test("weekly participation shows how many days each player is playing that week", async ({ page }) => {
   await loadWithMocks(page, { nowIso: AFTER_CUTOFF_NOW });
 
   await page.getByTestId("tab-monthly-participation-button").click();
-  await expect(page.getByTestId("weekly-participation")).toBeVisible();
+  await expect(page.getByTestId("weekly-label")).toContainText("This week");
 
   const firstRow = page.locator("[data-testid^='weekly-row-']").first();
   await expect(firstRow).toHaveAttribute("data-testid", "weekly-row-m2");
-  await expect(page.getByTestId("weekly-count-m2-2026-03-02")).toHaveText("3");
-  await expect(page.getByTestId("weekly-count-m3-2026-02-23")).toHaveText("1");
-  await expect(page.getByTestId("weekly-count-m3-2026-03-02")).toHaveText("1");
-  await expect(page.getByTestId("weekly-difference-m2")).toContainText("+");
+  await expect(page.getByTestId("weekly-count-m2")).toHaveText("3 days");
+  await expect(page.getByTestId("weekly-count-m3")).toHaveText("1 day");
+
+  await page.getByTestId("weekly-prev").click();
+  await expect(page.getByTestId("weekly-label")).toContainText("Last week");
+  await expect(firstRow).toHaveAttribute("data-testid", "weekly-row-m3");
+  await expect(page.getByTestId("weekly-count-m2")).toHaveText("0 days");
 });
