@@ -15,6 +15,7 @@ import { CaretLeftIcon as ChevronLeft } from "@phosphor-icons/react/dist/csr/Car
 import { CaretRightIcon as ChevronRight } from "@phosphor-icons/react/dist/csr/CaretRight";
 import type { Member, Booking, Comment } from "@shared/schema";
 import { getMaxCapacityForDate } from "@shared/booking-capacity";
+import { getDaysUntilOpenBookingWeek } from "@shared/booking-week-policy";
 import {
   isDateOutsideRollingBookingWindow,
   isPastBookingDate,
@@ -420,7 +421,8 @@ export default function BookingCalendar() {
   });
 
   const today = new Date();
-  const startOfThisWeek = startOfWeek(addDays(today, dateOffset), { weekStartsOn: 1 });
+  const openWeekAnchor = addDays(today, getDaysUntilOpenBookingWeek(today));
+  const startOfThisWeek = startOfWeek(addDays(openWeekAnchor, dateOffset), { weekStartsOn: 1 });
   const weekDays: Date[] = [];
 
   for (let i = 0; i < 28; i++) {
@@ -434,7 +436,7 @@ export default function BookingCalendar() {
 
   const twoMonthsAgo = subMonths(today, 2);
   const isPrevDisabled =
-    startOfWeek(addDays(today, dateOffset - 7), { weekStartsOn: 1 }) < twoMonthsAgo;
+    startOfWeek(addDays(openWeekAnchor, dateOffset - 7), { weekStartsOn: 1 }) < twoMonthsAgo;
   const isNextDisabled = dateOffset >= 0;
   const pastWeeks = weeks.map((week) => week.filter((date) => isPastBookingDate(date, today))).filter((week) => week.length > 0);
   const upcomingWeeks = weeks
