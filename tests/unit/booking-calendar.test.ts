@@ -100,4 +100,16 @@ describe("BookingCalendar mobile week sections", () => {
     expect(screen.queryByText("Earlier this week")).not.toBeInTheDocument();
     expect(screen.getByText((content) => content.replace(/\s+/g, " ").trim() === "Week of May 25")).toBeInTheDocument();
   });
+
+  it("moves the finished week behind the previous-week arrow from Friday 10 AM IST", () => {
+    vi.setSystemTime(new Date("2026-06-05T10:30:00+05:30"));
+    renderBookingCalendar();
+
+    expect(screen.getByText((content) => content.replace(/\s+/g, " ").trim() === "Week of Jun 8")).toBeInTheDocument();
+    expect(screen.queryByText("Earlier this week")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fri, Jun 5")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("prev-week-button"));
+    expect(screen.getByText((content) => content.replace(/\s+/g, " ").trim() === "Week of Jun 1")).toBeInTheDocument();
+  });
 });

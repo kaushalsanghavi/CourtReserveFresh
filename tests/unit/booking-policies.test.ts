@@ -9,6 +9,7 @@ import {
   SAME_DAY_BOOKING_LOCK_MESSAGE,
 } from "../../shared/booking-time-policy";
 import { validateBookingRequest } from "../../shared/booking-validation";
+import { getDaysUntilOpenBookingWeek } from "../../shared/booking-week-policy";
 
 describe("booking capacity policy", () => {
   it("returns 6 before 2026-03-03 and 5 on/after", () => {
@@ -133,5 +134,16 @@ describe("shared booking validation", () => {
     });
 
     expect(result).toBeNull();
+  });
+});
+
+describe("open booking week policy", () => {
+  it("keeps the current week until Friday 10 AM IST, then moves to next Monday", () => {
+    expect(getDaysUntilOpenBookingWeek(new Date("2026-03-05T23:00:00+05:30"))).toBe(0);
+    expect(getDaysUntilOpenBookingWeek(new Date("2026-03-06T09:59:00+05:30"))).toBe(0);
+    expect(getDaysUntilOpenBookingWeek(new Date("2026-03-06T10:00:00+05:30"))).toBe(3);
+    expect(getDaysUntilOpenBookingWeek(new Date("2026-03-07T12:00:00+05:30"))).toBe(2);
+    expect(getDaysUntilOpenBookingWeek(new Date("2026-03-08T12:00:00+05:30"))).toBe(1);
+    expect(getDaysUntilOpenBookingWeek(new Date("2026-03-09T08:00:00+05:30"))).toBe(0);
   });
 });

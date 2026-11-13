@@ -280,3 +280,17 @@ test("monthly participation hides inactive members only when they have no monthl
   await expect(page.getByTestId("total-bookings-m1")).toContainText("1");
   await expect(page.getByTestId("member-row-m7")).toHaveCount(0);
 });
+
+test("clicking a week heading shows how many days each player is playing, most first", async ({ page }) => {
+  await loadWithMocks(page, { nowIso: AFTER_CUTOFF_NOW });
+
+  await page.getByTestId("weekly-players-2026-03-02").click();
+  const dialog = page.getByTestId("weekly-players-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("2 Mar – 6 Mar");
+
+  const firstRow = dialog.locator("[data-testid^='weekly-row-']").first();
+  await expect(firstRow).toHaveAttribute("data-testid", "weekly-row-m2");
+  await expect(dialog.getByTestId("weekly-count-m2")).toHaveText("3 days");
+  await expect(dialog.getByTestId("weekly-count-m3")).toHaveText("1 day");
+});

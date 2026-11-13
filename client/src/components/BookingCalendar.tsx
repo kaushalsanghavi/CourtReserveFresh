@@ -8,12 +8,14 @@ import { triggerHaptic } from "@/lib/haptics";
 import { useSelectedMember } from "./QuickBooking";
 import CommentsAlternative from "./CommentsAlternative";
 import BookingHistory from "./BookingHistory";
+import WeeklyPlayers from "./WeeklyPlayers";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ClockCounterClockwiseIcon as History } from "@phosphor-icons/react/dist/csr/ClockCounterClockwise";
 import { CaretLeftIcon as ChevronLeft } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CaretRightIcon as ChevronRight } from "@phosphor-icons/react/dist/csr/CaretRight";
 import type { Member, Booking, Comment } from "@shared/schema";
 import { getMaxCapacityForDate } from "@shared/booking-capacity";
+import { getDaysUntilOpenBookingWeek } from "@shared/booking-week-policy";
 import {
   isDateOutsideRollingBookingWindow,
   isPastBookingDate,
@@ -419,7 +421,8 @@ export default function BookingCalendar() {
   });
 
   const today = new Date();
-  const startOfThisWeek = startOfWeek(addDays(today, dateOffset), { weekStartsOn: 1 });
+  const openWeekAnchor = addDays(today, getDaysUntilOpenBookingWeek(today));
+  const startOfThisWeek = startOfWeek(addDays(openWeekAnchor, dateOffset), { weekStartsOn: 1 });
   const weekDays: Date[] = [];
 
   for (let i = 0; i < 28; i++) {
@@ -433,7 +436,7 @@ export default function BookingCalendar() {
 
   const twoMonthsAgo = subMonths(today, 2);
   const isPrevDisabled =
-    startOfWeek(addDays(today, dateOffset - 7), { weekStartsOn: 1 }) < twoMonthsAgo;
+    startOfWeek(addDays(openWeekAnchor, dateOffset - 7), { weekStartsOn: 1 }) < twoMonthsAgo;
   const isNextDisabled = dateOffset >= 0;
   const pastWeeks = weeks.map((week) => week.filter((date) => isPastBookingDate(date, today))).filter((week) => week.length > 0);
   const upcomingWeeks = weeks
@@ -457,8 +460,14 @@ export default function BookingCalendar() {
     options?: { extraContent?: React.ReactNode; isLast?: boolean },
   ) => (
     <div key={`${keyPrefix}-${index}`} className={options?.isLast ? "" : "mb-8"}>
-      <h3 className="text-center text-sm font-medium text-gray-500 mb-6" data-testid={`${keyPrefix}-week-${index + 1}-label`}>
-        Week of {format(week[0], "MMM d")}
+      <h3 className="text-center mb-6">
+        <WeeklyPlayers
+          weekStart={format(startOfWeek(week[0], { weekStartsOn: 1 }), "yyyy-MM-dd")}
+          members={members}
+          bookings={bookings}
+          label={`Week of ${format(week[0], "MMM d")}`}
+          labelTestId={`${keyPrefix}-week-${index + 1}-label`}
+        />
       </h3>
       {options?.extraContent}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
